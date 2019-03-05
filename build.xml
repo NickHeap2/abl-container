@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="abl container" xmlns:if="ant:if" xmlns:unless="ant:unless" xmlns:sonar="antlib:org.sonar.ant">
+    <description>abl container</description>
+
+    <taskdef unless:true="${env.PCT}" resource="PCT.properties" classpath="tools/lib/PCT.jar" loaderRef="pct" />
+    <typedef unless:true="${env.PCT}" resource="types.properties" classpath="tools/lib/PCT.jar" loaderRef="pct" />
+    <property name="env.PCT" value="True"/>
+
+    <!-- load externals -->
+    <import file="macrodefs.xml"/>
+
+    <getosprops/>
+    <echo if:set="isWindows">Building on Windows with ${ant.version}</echo>
+    <echo if:set="isUnix">Building on Unix with ${ant.version}</echo>
+
+    <getoelocations/>
+    <property name="env.OEDLC" value="${env.OEDLC11}"/>
+    <property name="env.TEMP_DIR" value="build/temp/"/>
+
+    <!-- propath set -->
+    <path id="propath_source">
+        <pathelement path="src"/>
+    </path>
+
+    <!-- propath set tests -->
+    <path id="propath_tests">
+    	  <pathelement path="tools/ablunit"/>
+        <pathelement path="tests"/>
+        <pathelement path="src"/>
+    </path>
+
+    <!-- compile files set -->
+    <fileset dir="src" id="fileset_source">
+        <include name="**/*.p"/>
+        <include name="**/*.cls"/>
+    </fileset>
+
+    <!-- test files compile set -->
+    <fileset dir="tests" id="fileset_cps_tests_compile">
+        <include name="**/*.p"/>
+        <include name="**/*.cls"/>
+    </fileset>
+
+    <!-- test files set -->
+    <fileset dir="tests" id="fileset_tests">
+        <include name="**/test_*.p"/>
+        <include name="**/test_*.cls"/>
+    </fileset>
+
+    <!-- db connection set -->
+    <DBConnectionSet id="no_databases">
+        <!-- <DBConnection id="database" logicalName="database" dbName="database" dbDir="build/db"/> -->
+    </DBConnectionSet>
+
+    <target name="build" depends="init,restore,copy_static,compile,test,coveragereport"/>
+
+    <target name="init" depends="" description="Prepare for compile">
+        <mkdir dir="build/"/>
+        <delete dir="${env.TEMP_DIR}" quiet="true"/>
+        <mkdir dir="${env.TEMP_DIR}"/>
+        <mkdir dir="build/db/"/>
+    </target>
+
+    <target name="copy_static" description="Copy static files" depends="">
+        <copy todir="build/static">
+            <fileset dir=".">
+                <include name="start.bat"/>
+                <include name="appsettings.json"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="restore" description="Restore" depends="">
+        <!-- restore tools -->
+        <nugetrestore
+          nugetExecutable="tools/nuget.exe"
+          packagesFile="tools/packages.config"
+          destinationDir="tools/packages"/>
+
+        <nugetrestore
+          nugetExecutable="tools/nuget.exe"
+          packagesFile="packages.config"
+          destinationDir="packages"/>
+        <addpackagestoassemblies
+          packagesDir="packages"
+          assembliesDir="assemblies"/>
+
+        <!-- copy assemblies to build area -->
+        <copy todir="build/assemblies" flatten="false">
+          <fileset dir="assemblies">
+            <include name="assemblies.xml"/>
+            <include name="**/*.dll"/>
+            <include name="**/*.pdb"/>
+            <include name="**/*.xml"/>
+          </fileset>
+        </copy>
+
+    </target>
+
+    <!-- compile -->
+    <target name="compile" description="Compile" depends="">
+
+      <property name="absolute.temp" location="${env.TEMP_DIR}"/>
+
+      <oecompile baseDir="src"
+                 databasesid="no_databases"
+                 propathid="propath_source"
+                 filesetid="fileset_source"
+                 tempDir="${absolute.temp}"
+                 destDir="build/oe11/"
+                 assembliesDir="../build/assemblies/"
+                 metadata="false"
+                 />
+
+      <buildpl baseDir="build/oe11/"
+               destDir="build/oe11pl/"
+               libraryFile="ABLContainer.pl"/>
+    </target>
+
+    <!-- test -->
+    <target name="test" description="Test" depends="">
+      <property name="absolute.temp" location="${env.TEMP_DIR}"/>
+
+      <oecompile baseDir="tests"
+                 databasesid="no_databases"
+                 propathid="propath_tests"
+                 filesetid="fileset_tests"
+                 tempDir="${absolute.temp}"
+                 destDir="build/tests/"
+                 assembliesDir="../build/assemblies/"
+                 metadata="false"
+                 displayFiles="1"
+                 />
+
+      <property name="absolute.temp" location="${env.TEMP_DIR}"/>
+
+      <oetest baseDir="tests"
+              databasesid="no_databases"
+              propathid="propath_tests"
+              filesetid="fileset_tests"
+              tempDir="${absolute.temp}"
+              destDir="build/oe11/"
+              assembliesDir="../build/assemblies/"
+              />
+    </target>
+
+    <!-- report generator -->
+    <target name="coveragereport" description="Generate coverage report">
+        <coveragereport reportExecutable="tools/packages/ReportGenerator.3.1.2/tools/ReportGenerator.exe"
+                        coverageFile="build/oe11/cobertura-coverage.xml"
+                        destinationDir="build/reports" />
+        <exec executable="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" spawn="yes" failifexecutionfails="false">
+            <arg value="build/reports/index.htm" />
+        </exec>
+    </target>
+</project>
