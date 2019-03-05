@@ -13,7 +13,7 @@ DEFINE VARIABLE propathEnvVar AS CHARACTER NO-UNDO.
 propathEnvVar = OS-GETENV("BOOTSTRAP_PROPATH").
 RUN SetPropath(propathEnvVar).
 
-DYNAMIC-INVOKE("Bootstrap.Bootstrap", "Start").
+DYNAMIC-INVOKE("ABLContainer.Bootstrap.Bootstrap", "Start").
 
 QUIT.
 
