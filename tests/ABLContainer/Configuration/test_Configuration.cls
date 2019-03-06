@@ -18,7 +18,7 @@ CLASS ABLContainer.Configuration.test_Configuration:
         :AddEnvironmentVariables().
     configuration = configurationBuilder
                       :Build().
-
+    ABLContainer.Configuration.Configuration:Current = configuration.
   END METHOD.
 
   @Test.

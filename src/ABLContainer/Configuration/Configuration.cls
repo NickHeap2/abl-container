@@ -8,6 +8,10 @@ CLASS ABLContainer.Configuration.Configuration:
 
   DEFINE VARIABLE configurationDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>" NO-UNDO.
 
+  DEFINE PUBLIC STATIC PROPERTY Current AS Configuration NO-UNDO
+  GET.
+  SET.
+
   CONSTRUCTOR PUBLIC Configuration (configDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>"):
     configurationDictionary = configDictionary.
 

@@ -11,7 +11,9 @@ BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Bootstrap.Bootstrap: 
 
-/*  DEFINE STATIC VARIABLE configuration AS Configuration NO-UNDO.*/
+  DEFINE PUBLIC STATIC PROPERTY ConnectionStrings AS "System.Collections.Generic.List<character>" NO-UNDO
+  GET.
+  SET.
 
   DEFINE PUBLIC STATIC PROPERTY StartupProcedure AS CHARACTER NO-UNDO
   GET.
@@ -20,49 +22,8 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   DEFINE PUBLIC STATIC PROPERTY UseProfiler AS LOGICAL NO-UNDO
   GET.
   SET.
-  
 
-  CONSTRUCTOR PUBLIC Bootstrap (  ):
-    
-  END CONSTRUCTOR.
-
-  METHOD PUBLIC STATIC VOID SetApplicationSettings(configuration AS Configuration, applicationName AS CHARACTER):
-
-    IF NOT VALID-OBJECT(configuration) THEN DO:
-      RETURN.
-    END.
-
-    DEFINE VARIABLE applicationSection AS ConfigurationSection NO-UNDO.
-    applicationSection = configuration:GetSection(applicationName).
-    IF NOT VALID-OBJECT(applicationSection) THEN DO:
-      RETURN.
-    END.
-
-    DEFINE VARIABLE currentDateFormat AS CHARACTER NO-UNDO.
-    currentDateFormat = SESSION:DATE-FORMAT.
-
-    SESSION:DATE-FORMAT = "YMD".
-
-    // DEFINE VARIABLE applicationSettings AS Settings NO-UNDO.
-    // applicationSettings = Settings:Current.
-    
-    DEFINE VARIABLE applicationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
-    applicationEnumerator = applicationSection:GetChildren().
-    _APPLICATION:
-    DO WHILE(applicationEnumerator:MoveNext()):
-      DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
-      configurationSection = CAST(applicationEnumerator:Current:Value, ConfigurationSection).
-
-      Log:Information("ApplicationSetting ~{Key~}=~{Value~}", BOX(configurationSection:Key), BOX(configurationSection:Value)).
-/*      MESSAGE SUBSTITUTE("ApplicationSetting->&1=&2", configurationSection:Key, configurationSection:Value).*/
-//      DYNAMIC-PROPERTY(applicationSettings, configurationSection:Key) = configurationSection:Value.
-    END.
-
-    SESSION:DATE-FORMAT = currentDateFormat.
-
-  END METHOD.
-  
-  METHOD PUBLIC STATIC Configuration BuildConfiguration(  ):
+  METHOD PUBLIC STATIC Configuration BuildConfiguration(environment AS CHARACTER):
 
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
@@ -71,11 +32,12 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     configurationBuilder
       :SetBasePath(".")
       :AddJsonFile("appsettings.json", TRUE)
-      :AddJsonFile("appsettings.Development.json", TRUE)
+      :AddJsonFile(SUBSTITUTE("appsettings.&1.json", environment), TRUE)
       :AddEnvironmentVariables().
     configuration = configurationBuilder
                       :Build().
-
+    ABLContainer.Configuration.Configuration:Current = configuration.
+    
     RETURN configuration.
   END METHOD.
   
@@ -84,54 +46,60 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     SetSeriLogSettings(configuration).
 
     SetOpenEdgeSettings(configuration).
-    
-    SetApplicationSettings(configuration, "Application").
 
   END METHOD.
   
-  METHOD PUBLIC STATIC VOID Start(  ):
-  
+  METHOD PUBLIC STATIC VOID Start(environment AS CHARACTER):
+    ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
+
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
-    configuration = BuildConfiguration().
+    configuration = BuildConfiguration(environment).
 
     SetSettings(configuration).
 
-    IF UseProfiler THEN DO:
-      OS-CREATE-DIR VALUE("profile").
-
-      PROFILER:ENABLED = TRUE.
-      PROFILER:DIRECTORY = "profile".
-      PROFILER:FILE-NAME = SUBSTITUTE("profile/profiler_&1_&2_&3@&4.prof", YEAR(TODAY), MONTH(TODAY), DAY(TODAY), REPLACE(STRING(TIME, "HH:MM:SS"),":","")).
-      PROFILER:LISTINGS = TRUE.
-      PROFILER:DESCRIPTION = "PROFILER".
-      PROFILER:PROFILING = TRUE.
-      PROFILER:TRACE-FILTER = "*".
+    IF (NOT ConnectToDatabases()) THEN DO:
+        RETURN.
     END.
-
-/*    MESSAGE "StartupProcedure->" + StartupProcedure.*/
-/*    MESSAGE "ProPath->" + UseProPath.               */
-/*    MESSAGE "UseProfiler->" + STRING(UseProfiler).  */
-
-    /* try and run the startup procedure */
-    IF StartupProcedure = ""
-      OR (SEARCH(StartupProcedure) = ?
-          AND SEARCH(REPLACE(StartupProcedure, ".p", ".r")) = ?)
-    THEN DO:
-      MESSAGE "proc not found".
-      Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
-      RETURN.
-    END.
+    ELSE DO:
+        IF UseProfiler THEN DO:
+          OS-CREATE-DIR VALUE("profile").
     
-    DO ON STOP UNDO, LEAVE
-       ON ERROR UNDO, LEAVE:
+          PROFILER:ENABLED = TRUE.
+          PROFILER:DIRECTORY = "profile".
+          PROFILER:FILE-NAME = SUBSTITUTE("profile/profiler_&1_&2_&3@&4.prof", YEAR(TODAY), MONTH(TODAY), DAY(TODAY), REPLACE(STRING(TIME, "HH:MM:SS"),":","")).
+          PROFILER:LISTINGS = TRUE.
+          PROFILER:DESCRIPTION = "PROFILER".
+          PROFILER:PROFILING = TRUE.
+          PROFILER:TRACE-FILTER = "*".
+        END.
     
-      RUN VALUE(StartupProcedure).
+    /*    MESSAGE "StartupProcedure->" + StartupProcedure.*/
+    /*    MESSAGE "ProPath->" + UseProPath.               */
+    /*    MESSAGE "UseProfiler->" + STRING(UseProfiler).  */
     
-      CATCH er AS Progress.Lang.Error :
-        MESSAGE "fatal error".
-        Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
-      END CATCH.
-    END.
+        /* try and run the startup procedure */
+        IF StartupProcedure = ""
+          OR (SEARCH(StartupProcedure) = ?
+              AND SEARCH(REPLACE(StartupProcedure, ".p", ".r")) = ?)
+        THEN DO:
+          MESSAGE "proc not found".
+          Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
+          RETURN.
+        END.
+    
+        _RUNNING_LOOP:
+        DO ON STOP UNDO, LEAVE
+           ON ERROR UNDO, LEAVE:
+        
+          RUN VALUE(StartupProcedure).
+    
+          CATCH er AS Progress.Lang.Error :
+            MESSAGE "fatal error".
+            Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
+            LEAVE _RUNNING_LOOP.
+          END CATCH.
+        END.
+    END. /* databases connected */
 
     IF UseProfiler THEN DO:
       /*turn off profiler and flush the data*/
@@ -258,6 +226,27 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   
   END METHOD.
   
+  METHOD PUBLIC STATIC LOGICAL ConnectToDatabases():
+    DEFINE VARIABLE connectionStringsEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
+    
+    connectionStringsEnumerator = ConnectionStrings:GetEnumerator().
+    DO WHILE(connectionStringsEnumerator:MoveNext()):
+        DEFINE VARIABLE databaseConnectionString AS CHARACTER NO-UNDO.
+        
+        databaseConnectionString = connectionStringsEnumerator:Current.
+
+        Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(databaseConnectionString)).
+        CONNECT VALUE(databaseConnectionString) NO-ERROR.
+        IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+          Log:Error("ERROR: Couldn't connect to database!").
+          Log:Error("ERROR: ~{ErrorMessage~}", BOX(ERROR-STATUS:GET-MESSAGE(1))).
+          RETURN FALSE.
+        END.
+    END.
+  
+    RETURN TRUE.
+  END.
+  
   METHOD PUBLIC STATIC VOID SetOpenEdgeSettings(configuration AS Configuration):
     DEFINE VARIABLE openedgeSection AS ConfigurationSection NO-UNDO.
     openedgeSection = configuration:GetSection("OpenEdge").
@@ -269,7 +258,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     openedgeEnumerator = openedgeSection:GetChildren().
     _OPENEDGE:
     DO WHILE(openedgeEnumerator:MoveNext()):
-      
+
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
       configurationSection = CAST(openedgeEnumerator:Current:Value, ConfigurationSection).
       
@@ -289,8 +278,10 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         DEFINE VARIABLE databasesEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
         
         databasesEnumerator = configurationSection:GetChildren().
+
         _DATABASE:
         DO WHILE(databasesEnumerator:MoveNext()):
+
           databaseSection = CAST(databasesEnumerator:Current:Value, ConfigurationSection).
 /*          MESSAGE SUBSTITUTE("databaseSection &1->&2", databaseSection:Key, databaseSection:Value).*/
           DEFINE VARIABLE dbSettingSection AS ConfigurationSection NO-UNDO.
@@ -325,12 +316,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           END. /*_DB_SETTING*/
 
           IF databaseConnectionString <> "" THEN DO:
-            Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(databaseConnectionString)).
-            CONNECT VALUE(databaseConnectionString) NO-ERROR.
-            IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
-              Log:Error("ERROR: Couldn't connect to database!").
-              Log:Error("ERROR: ~{ErrorMessage~}", BOX(ERROR-STATUS:GET-MESSAGE(1))).
-            END.
+            ABLContainer.Bootstrap.Bootstrap:ConnectionStrings:Add(databaseConnectionString).
           END.
           
         END. /*_DATABASE*/

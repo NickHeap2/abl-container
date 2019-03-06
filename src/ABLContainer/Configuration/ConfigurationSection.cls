@@ -24,6 +24,23 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
     configurationObject = configuration.
   END CONSTRUCTOR.
 
+  METHOD PUBLIC VOID Bind(bindObject AS System.Object):
+
+    DEFINE VARIABLE sectionEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+    sectionEnumerator = THIS-OBJECT:GetChildren().
+    _SERILOG:
+    DO WHILE(sectionEnumerator:MoveNext()):
+      DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
+      configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
+
+      /* is this a value node? */      
+      IF configurationSection:Value <> ? THEN DO:
+        DYNAMIC-PROPERTY(bindObject, configurationSection:Key) = configurationSection:Value NO-ERROR.
+      END.      
+    END.
+
+  END METHOD.
+
   METHOD PUBLIC "System.Collections.Generic.Dictionary<character, System.Object>+Enumerator" GetChildren():
     DEFINE VARIABLE childConfigurationSections AS "System.Collections.Generic.Dictionary<character, System.Object>" NO-UNDO.
     DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.

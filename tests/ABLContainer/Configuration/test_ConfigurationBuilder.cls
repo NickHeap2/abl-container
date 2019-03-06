@@ -71,7 +71,26 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
    configurationBuilder = NEW ConfigurationBuilder().
    configurationBuilder:AddEnvironmentVariables().
 
+   System.Environment:SetEnvironmentVariable("Application__stringSetting", "").
+
   END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canAddEnvVarsWithOverride(  ):
+
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+
+    System.Environment:SetEnvironmentVariable("Application__stringSetting","NewSettingValue").
+
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder
+      :AddEnvironmentVariables()
+      :AddEnvironmentVariables().
+
+    System.Environment:SetEnvironmentVariable("Application__stringSetting", "").
+
+  END METHOD.
+
 
   @Test.
   METHOD PUBLIC VOID canAddEnvVarsWithPrefix(  ):
@@ -82,6 +101,8 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
 
    configurationBuilder = NEW ConfigurationBuilder().
    configurationBuilder:AddEnvironmentVariables("Application__").
+
+   System.Environment:SetEnvironmentVariable("Application__stringSetting", "").
 
   END METHOD.
 
@@ -109,6 +130,12 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
        :SetBasePath("..")
        :AddJsonFile("appsettings.json", FALSE)
        :AddJsonFile("appsettings.json", FALSE).
+
+  END METHOD.
+
+  @TearDown.
+  METHOD PUBLIC VOID tearDown():
+   System.Environment:SetEnvironmentVariable("Application__stringSetting", "").
 
   END METHOD.
 

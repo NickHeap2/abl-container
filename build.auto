@@ -7,12 +7,12 @@
     },
     {
       "filePattern": "**/test_*.{p,cls}",
-      "runTargets": "test,coveragereport",
+      "runTargets": "test",
       "initialDelayMs": 1000
     },
     {
       "filePattern": "**/*.{p,w,i,cls}",
-      "runTargets": "compile,test,coveragereport",
+      "runTargets": "compile,test",
       "initialDelayMs": 3000
     }  ],
   "disabled": [

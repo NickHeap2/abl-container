@@ -10,10 +10,18 @@ SESSION:ERROR-STACK-TRACE=YES.
 
 RUN ClearPropath.
 DEFINE VARIABLE propathEnvVar AS CHARACTER NO-UNDO.
+DEFINE VARIABLE environmentEnvVar AS CHARACTER NO-UNDO.
 propathEnvVar = OS-GETENV("BOOTSTRAP_PROPATH").
+environmentEnvVar = OS-GETENV("OPENEDGE_ENVIRONMENT").
+IF environmentEnvVar = ""
+  OR environmentEnvVar = ?
+THEN DO:
+  environmentEnvVar = "Production".
+END.
+
 RUN SetPropath(propathEnvVar).
 
-DYNAMIC-INVOKE("ABLContainer.Bootstrap.Bootstrap", "Start").
+DYNAMIC-INVOKE("ABLContainer.Bootstrap.Bootstrap", "Start", environmentEnvVar).
 
 QUIT.
 

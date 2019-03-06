@@ -36,4 +36,23 @@ CLASS ABLContainer.Configuration.test_ConfigurationSection:
     Assert:NotNull(configurationEnumerator).
   END METHOD.
 
+  @Test.
+  METHOD PUBLIC VOID canBindAnObject(  ):
+
+    DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
+
+    configurationSection = configuration:GetSection("Application").
+    Assert:NotNull(configurationSection).
+
+    DEFINE VARIABLE bindingObject AS BindingObject NO-UNDO.
+    bindingObject = NEW BindingObject().
+    
+    configurationSection:Bind(bindingObject).
+    
+    Assert:Equals(true, bindingObject:LogicalSetting).
+    Assert:Equals(1, bindingObject:IntegerSetting).
+    Assert:Equals("setting", bindingObject:StringSetting).
+
+  END METHOD.
+
 END CLASS.

@@ -17,14 +17,14 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
   @Test.
   METHOD PUBLIC VOID canHandleNoConfiguration(  ):
 
-    Bootstrap:SetApplicationSettings(?, "Application").
+    Bootstrap:SetOpenEdgeSettings(?).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canBuildConfiguration(  ):
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
-    configuration = Bootstrap:BuildConfiguration().
+    configuration = Bootstrap:BuildConfiguration("Development").
     Assert:NotNull(configuration).
   END METHOD.
 
@@ -50,6 +50,6 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
   @TearDown.
   METHOD PUBLIC VOID tearDown():
     PROPATH = previousPropath.
-  END PROCEDURE.
+  END METHOD.
 
 END CLASS.
