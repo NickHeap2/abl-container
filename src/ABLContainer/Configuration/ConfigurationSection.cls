@@ -9,16 +9,16 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
   DEFINE VARIABLE configurationObject AS Configuration NO-UNDO.
 
   DEFINE PUBLIC PROPERTY Key AS CHARACTER NO-UNDO
-  GET.
-  SET.
+    GET.
+    SET.
 
   DEFINE PUBLIC PROPERTY Path AS CHARACTER NO-UNDO
-  GET.
-  SET.
+    GET.
+    SET.
 
   DEFINE PUBLIC PROPERTY Value AS CHARACTER NO-UNDO
-  GET.
-  SET.
+    GET.
+    SET.
 
   CONSTRUCTOR PUBLIC ConfigurationSection (configuration AS configuration):
     configurationObject = configuration.
@@ -43,16 +43,16 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
 
   METHOD PUBLIC "System.Collections.Generic.Dictionary<character, System.Object>+Enumerator" GetChildren():
     DEFINE VARIABLE childConfigurationSections AS "System.Collections.Generic.Dictionary<character, System.Object>" NO-UNDO.
-    DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
+    DEFINE VARIABLE configurationSection       AS ConfigurationSection                                              NO-UNDO.
 
-    DEFINE VARIABLE parentLevel AS INTEGER NO-UNDO.
-    DEFINE VARIABLE childLevel AS INTEGER NO-UNDO.
+    DEFINE VARIABLE parentLevel                AS INTEGER                                                           NO-UNDO.
+    DEFINE VARIABLE childLevel                 AS INTEGER                                                           NO-UNDO.
     childConfigurationSections = NEW "System.Collections.Generic.Dictionary<character, System.Object>"().
     
     parentLevel = NUM-ENTRIES(THIS-OBJECT:Path, ":").
 
-    DEFINE VARIABLE envVarName AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE envVarValue AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE envVarName        AS CHARACTER                                                                NO-UNDO.
+    DEFINE VARIABLE envVarValue       AS CHARACTER                                                                NO-UNDO.
     DEFINE VARIABLE configurationEnum AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
 
     configurationEnum = configurationObject:GetChildren().
@@ -68,7 +68,7 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
         childLevel = NUM-ENTRIES(envVarName, ":").
         
         DEFINE VARIABLE childPath AS CHARACTER NO-UNDO.
-        DEFINE VARIABLE iLevel AS INTEGER NO-UNDO.
+        DEFINE VARIABLE iLevel    AS INTEGER   NO-UNDO.
         childPath = "".
         DO iLevel = 1 TO parentLevel + 1:
           IF iLevel <> 1 THEN childPath = childPath + ":".
@@ -89,9 +89,9 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
             configurationSection:Value = ?.
           END.
 
-/*          MESSAGE "ConfigurationSection".                  */
-/*          MESSAGE "    Key->" + configurationSection:Key.  */
-/*          MESSAGE "    Path->" + configurationSection:Path.*/
+          /*          MESSAGE "ConfigurationSection".                  */
+          /*          MESSAGE "    Key->" + configurationSection:Key.  */
+          /*          MESSAGE "    Path->" + configurationSection:Path.*/
           childConfigurationSections:Add(childPath, configurationSection).
         END.
       END.

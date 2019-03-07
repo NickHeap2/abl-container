@@ -8,7 +8,7 @@ BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Configuration.ConfigurationBuilder: 
 
-  DEFINE VARIABLE basePath AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE basePath                AS CHARACTER                                                     NO-UNDO.
   DEFINE VARIABLE configurationDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>" NO-UNDO.
 
   METHOD PRIVATE VOID AddArraySetting(settingName AS CHARACTER, propertyType AS INTEGER, propertyIndex AS INTEGER, theArray AS JsonArray):
@@ -54,11 +54,11 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
   END METHOD.
 
   METHOD PUBLIC ConfigurationBuilder AddJsonFile(fileName AS CHARACTER, optional AS LOGICAL):
-    DEFINE VARIABLE parser AS ObjectModelParser NO-UNDO.
-    DEFINE VARIABLE appsettingsObject AS JsonObject NO-UNDO.
+    DEFINE VARIABLE parser            AS ObjectModelParser NO-UNDO.
+    DEFINE VARIABLE appsettingsObject AS JsonObject        NO-UNDO.
 
     IF basePath <> "" THEN DO:
-        fileName = System.IO.Path:Combine(basePath, fileName).
+      fileName = System.IO.Path:Combine(basePath, fileName).
     END.
 
     IF NOT File:Exists(fileName) THEN DO:
@@ -92,7 +92,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
     dictEnum = envVars:GetEnumerator().
 
-    DEFINE VARIABLE envVarName AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE envVarName  AS CHARACTER NO-UNDO.
     DEFINE VARIABLE envVarValue AS CHARACTER NO-UNDO.
 
     _ENV_VARS:
@@ -101,7 +101,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       envVarValue = STRING(dictEnum:Value).
 
       IF (prefix <> ""
-          AND NOT envVarName BEGINS prefix)
+        AND NOT envVarName BEGINS prefix)
         OR NOT envVarName MATCHES "*__*"
       THEN DO:
         NEXT _ENV_VARS.
@@ -109,7 +109,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       
       envVarName = REPLACE(envVarName, "__", ":").
       
-/*      MESSAGE envVarName "->" envVarValue.*/
+      /*      MESSAGE envVarName "->" envVarValue.*/
       IF configurationDictionary:ContainsKey(envVarName) THEN DO:
         configurationDictionary[envVarName] = envVarValue.
       END.
@@ -128,9 +128,9 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
     DEFINE VARIABLE propertyNames AS CHARACTER EXTENT NO-UNDO.
     propertyNames = theObject:GetNames().
     
-    DEFINE VARIABLE propertyName AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE propertyType AS INTEGER NO-UNDO.
-    DEFINE VARIABLE propertyNameIndex AS INTEGER NO-UNDO.
+    DEFINE VARIABLE propertyName      AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE propertyType      AS INTEGER   NO-UNDO.
+    DEFINE VARIABLE propertyNameIndex AS INTEGER   NO-UNDO.
     DO propertyNameIndex = 1 TO EXTENT(propertyNames):
       
       propertyName = propertyNames[propertyNameIndex].
@@ -143,16 +143,16 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       END.
       ELSE IF propertyType = 5 THEN DO:
         DEFINE VARIABLE theArray AS JsonArray NO-UNDO.
-        
-        theArray = theObject:GetJsonArray(propertyName).
       
-        DEFINE VARIABLE arrayObject AS JsonObject NO-UNDO.
-        DEFINE VARIABLE arrayEntryType AS INTEGER NO-UNDO.
-        DEFINE VARIABLE arrayIndex AS INTEGER NO-UNDO.
+        theArray = theObject:GetJsonArray(propertyName).
+    
+        DEFINE VARIABLE arrayObject    AS JsonObject NO-UNDO.
+        DEFINE VARIABLE arrayEntryType AS INTEGER    NO-UNDO.
+        DEFINE VARIABLE arrayIndex     AS INTEGER    NO-UNDO.
         DO arrayIndex = 1 TO theArray:LENGTH:
-          
+        
           arrayEntryType = theArray:GetType(arrayIndex).
-          
+        
           IF arrayEntryType = 4 THEN DO:
             arrayObject = theArray:GetJsonObject(arrayIndex).
             AddObjectValues(baseSetting + propertyName + ":" + STRING(arrayIndex - 1) + ":", arrayObject).          

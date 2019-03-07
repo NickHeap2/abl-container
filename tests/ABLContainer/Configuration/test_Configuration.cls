@@ -6,26 +6,27 @@ BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Configuration.test_Configuration: 
  
-  DEFINE VARIABLE configuration AS Configuration NO-UNDO.
+  DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
   DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
  
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
-        :SetBasePath("..")
-        :AddJsonFile("appsettings.json", FALSE)
-        :AddEnvironmentVariables().
-    configuration = configurationBuilder
-                      :Build().
+      :SetBasePath("..")
+      :AddJsonFile("appsettings.json", FALSE)
+      :AddEnvironmentVariables().
+    configuration = configurationBuilder:Build().
+    Assert:NotNull(configuration).
+
     ABLContainer.Configuration.Configuration:Current = configuration.
+    Assert:NotNull(ABLContainer.Configuration.Configuration:Current).
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canCreateAConfiguration(  ):
     DEFINE VARIABLE newConfiguration AS Configuration NO-UNDO.
-    newConfiguration = configurationBuilder
-                      :Build().
+    newConfiguration = configurationBuilder:Build().
     Assert:NotNull(newConfiguration).
   END METHOD.
 

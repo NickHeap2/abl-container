@@ -6,6 +6,10 @@
     <typedef unless:true="${env.PCT}" resource="types.properties" classpath="tools/lib/PCT.jar" loaderRef="pct" />
     <property name="env.PCT" value="True"/>
 
+    <taskdef unless:true="${env.ANT-CONTRIB}" resource="net/sf/antcontrib/antcontrib.properties" classpath="tools/lib/ant-contrib-1.0b3.jar"/>
+    <taskdef unless:true="${env.ANT-CONTRIB}" resource="net/sf/antcontrib/antlib.xml" classpath="tools/lib/ant-contrib-1.0b3.jar"/>
+    <property name="env.ANT-CONTRIB" value="True"/>
+
     <!-- load externals -->
     <import file="macrodefs.xml"/>
 
@@ -66,6 +70,7 @@
             <fileset dir=".">
                 <include name="start.bat"/>
                 <include name="appsettings.json"/>
+                <different targetdir="build/static" ignoreFileTimes="true"/>
             </fileset>
         </copy>
     </target>
@@ -92,6 +97,7 @@
             <include name="**/*.dll"/>
             <include name="**/*.pdb"/>
             <include name="**/*.xml"/>
+            <different targetdir="build/assemblies" ignoreFileTimes="true"/>
           </fileset>
         </copy>
 
@@ -149,8 +155,8 @@
         <coveragereport reportExecutable="tools/packages/ReportGenerator.3.1.2/tools/ReportGenerator.exe"
                         coverageFile="build/oe11/cobertura-coverage.xml"
                         destinationDir="build/reports" />
-        <exec executable="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" spawn="yes" failifexecutionfails="false">
+        <!-- <exec executable="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" spawn="yes" failifexecutionfails="false">
             <arg value="build/reports/index.htm" />
-        </exec>
+        </exec> -->
     </target>
 </project>

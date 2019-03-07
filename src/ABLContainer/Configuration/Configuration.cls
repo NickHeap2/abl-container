@@ -9,8 +9,8 @@ CLASS ABLContainer.Configuration.Configuration:
   DEFINE VARIABLE configurationDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>" NO-UNDO.
 
   DEFINE PUBLIC STATIC PROPERTY Current AS Configuration NO-UNDO
-  GET.
-  SET.
+    GET.
+    SET.
 
   CONSTRUCTOR PUBLIC Configuration (configDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>"):
     configurationDictionary = configDictionary.
@@ -29,8 +29,8 @@ CLASS ABLContainer.Configuration.Configuration:
     configurationSection:Key = ENTRY(NUM-ENTRIES(sectionName, ":"), sectionName, ":").
     configurationSection:Path = sectionName.
 
-    DEFINE VARIABLE configKey AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE configValue AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE configKey         AS CHARACTER             NO-UNDO.
+    DEFINE VARIABLE configValue       AS CHARACTER             NO-UNDO.
     DEFINE VARIABLE configurationEnum AS IDictionaryEnumerator NO-UNDO.   
     configurationEnum = configurationDictionary:GetEnumerator().
     _ENV_VARS:

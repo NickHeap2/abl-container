@@ -24,7 +24,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
   @Test.
   METHOD PUBLIC VOID canSetSettings(  ):
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
-    DEFINE VARIABLE configuration AS Configuration NO-UNDO.
+    DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
 
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
@@ -32,8 +32,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
       :AddJsonFile("appsettings.nodb.json", TRUE)
       :AddJsonFile("appsettings.Development.json", TRUE)
       :AddEnvironmentVariables().
-    configuration = configurationBuilder
-                      :Build().
+    configuration = configurationBuilder:Build().
     Assert:NotNull(configuration).
 
     Bootstrap:SetSettings(configuration).

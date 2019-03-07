@@ -2,7 +2,11 @@
 
 <taskdef unless:true="${env.PCT}" resource="PCT.properties" classpath="${env.PCT_PATH};${base.dir}/tools/lib/ast.jar;${base.dir}/tools/lib/ast-dependencies.jar" loaderRef="pct" />
 <typedef unless:true="${env.PCT}" resource="types.properties" classpath="${env.PCT_PATH};${base.dir}/tools/lib/ast.jar;${base.dir}/tools/lib/ast-dependencies.jar" loaderRef="pct" />
+<taskdef unless:true="${env.ANT-CONTRIB}" resource="net/sf/antcontrib/antcontrib.properties" classpath="${base.dir}/tools/lib/ant-contrib-1.0b3.jar"/>
+<taskdef unless:true="${env.ANT-CONTRIB}" resource="net/sf/antcontrib/antlib.xml" classpath="${base.dir}/tools/lib/ant-contrib-1.0b3.jar"/>
+
 <property name="env.PCT" value="True"/>
+<property name="env.ANT-CONTRIB" value="True"/>
 
 <property name="octo.Server" value="https://"/>
 <property name="octo.APIKey" value=""/>
@@ -575,6 +579,7 @@
                  destDir="@{destDir}" relativePaths="true"
                  tempDir="@{tempDir}"
                  failOnError="true"
+                 haltOnFailure="true"
                  compileUnderscore="true"
 
                  stackSize="10000"
@@ -677,40 +682,36 @@
     <attribute name="assembliesDir" default="assemblies"/>
 
     <sequential>
-      <!-- overlay versions -->
-      <copy todir="@{assembliesDir}" flatten="true" overwrite="true">
-        <fileset dir="@{packagesDir}">
-          <include name="**/lib/netstandard1.0/**.*"/>
-          <exclude name="**/_._"/>
-        </fileset>
-      </copy>
-      <copy todir="@{assembliesDir}" flatten="true" overwrite="true">
-        <fileset dir="@{packagesDir}">
-          <include name="**/lib/netstandard1.1/**.*"/>
-          <exclude name="**/_._"/>
-        </fileset>
-      </copy>
-      <copy todir="@{assembliesDir}" flatten="true" overwrite="true">
-        <fileset dir="@{packagesDir}">
-          <include name="**/lib/net45/**.*"/>
-          <exclude name="**/_._"/>
-        </fileset>
-      </copy>
-      <copy todir="@{assembliesDir}" flatten="true" overwrite="true">
-        <fileset dir="@{packagesDir}">
-          <include name="**/lib/net45-full/**.*"/>
-          <exclude name="**/_._"/>
-        </fileset>
-      </copy>
-      <copy todir="@{assembliesDir}" flatten="true" overwrite="true">
-        <fileset dir="@{packagesDir}">
-          <include name="**/lib/net452/**.*"/>
-          <exclude name="**/_._"/>
-        </fileset>
-      </copy>
-    </sequential>
+        <for param="dir">
+            <path>
+                <dirset dir="@{packagesDir}" includes="*"/>
+            </path>
+            <sequential>
+                <local name="dirToCopy.@{dir}"/>
 
+                <available type="dir" file="@{dir}/lib/net452" property="dirToCopy.@{dir}" value="net452"/>
+                <available unless:set="dirToCopy.@{dir}" type="dir" file="@{dir}/lib/net45-full" property="dirToCopy.@{dir}" value="net45-full"/>
+                <available unless:set="dirToCopy.@{dir}" type="dir" file="@{dir}/lib/net45" property="dirToCopy.@{dir}" value="net45"/>
+                <available unless:set="dirToCopy.@{dir}" type="dir" file="@{dir}/lib/netstandard1.1" property="dirToCopy.@{dir}" value="netstandard1.1"/>
+                <available unless:set="dirToCopy.@{dir}" type="dir" file="@{dir}/lib/netstandard1.0" property="dirToCopy.@{dir}" value="netstandard1.0"/>
+                <!-- <echo if:set="dirToCopy.@{dir}" message="Copying from @{dir}/lib/${dirToCopy.@{dir}}"/> -->
+
+                <copy if:set="dirToCopy.@{dir}" todir="@{assembliesDir}" flatten="true" overwrite="true" verbose="true">
+                    <fileset dir="@{dir}">
+                        <include name="**/lib/${dirToCopy.@{dir}}/**.*"/>
+                        <exclude name="**/_._"/>
+                        <different targetdir="@{assembliesDir}" ignoreFileTimes="true">
+                            <mapper type="flatten"/>
+                        </different>
+                    </fileset>
+                </copy>
+
+            </sequential>
+        </for>
+    </sequential>
 </macrodef>
+
+
 
 <macrodef name="oecompile">
     <attribute name="branch" default="${env.BUILD_BRANCH}"/>

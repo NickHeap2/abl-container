@@ -10,15 +10,14 @@ CLASS ABLContainer.Configuration.test_ConfigurationSection:
  
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
-   DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
 
-   configurationBuilder = NEW ConfigurationBuilder().
-   configurationBuilder
-       :SetBasePath("..")
-       :AddJsonFile("appsettings.json", FALSE)
-       :AddEnvironmentVariables().
-   configuration = configurationBuilder
-                     :Build().
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder
+      :SetBasePath("..")
+      :AddJsonFile("appsettings.json", FALSE)
+      :AddEnvironmentVariables().
+    configuration = configurationBuilder:Build().
 
   END METHOD.
 
