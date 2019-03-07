@@ -15,13 +15,6 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
   END METHOD.
 
   @Test.
-  METHOD PUBLIC VOID canHandleNoConfiguration(  ):
-
-    Bootstrap:SetOpenEdgeSettings(?).
-
-  END METHOD.
-
-  @Test.
   METHOD PUBLIC VOID canBuildConfiguration(  ):
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = Bootstrap:BuildConfiguration("Development").

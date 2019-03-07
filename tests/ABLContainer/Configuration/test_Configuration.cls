@@ -35,7 +35,7 @@ CLASS ABLContainer.Configuration.test_Configuration:
     DEFINE VARIABLE configurationValue AS CHARACTER NO-UNDO.
 
     configurationValue = configuration:Item("Application:integerSetting").
-    Assert:Equals(configurationValue, "0").
+    Assert:Equals("1", configurationValue).
 
   END METHOD.
 
@@ -45,7 +45,7 @@ CLASS ABLContainer.Configuration.test_Configuration:
     DEFINE VARIABLE configurationValue AS CHARACTER NO-UNDO.
 
     configurationValue = configuration:Item("Application:missingSetting").
-    Assert:Equals(configurationValue, ?).
+    Assert:Equals(?, configurationValue).
 
   END METHOD.
 
@@ -55,7 +55,7 @@ CLASS ABLContainer.Configuration.test_Configuration:
     DEFINE VARIABLE configurationValue AS CHARACTER NO-UNDO.
 
     configurationValue = configuration:Item("Application:missingSetting").
-    Assert:Equals(configurationValue, ?).
+    Assert:Equals(?, configurationValue).
 
   END METHOD.
 
@@ -76,7 +76,7 @@ CLASS ABLContainer.Configuration.test_Configuration:
 
     configurationSection = configuration:GetSection("Application").
     Assert:NotNull(configurationSection).
-    Assert:Equals(configurationSection:Key, "Application").
+    Assert:Equals("Application", configurationSection:Key).
 
   END METHOD.
 
