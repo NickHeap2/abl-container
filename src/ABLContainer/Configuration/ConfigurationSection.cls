@@ -41,6 +41,10 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
 
   END METHOD.
 
+  METHOD PUBLIC ConfigurationSection GetSection(sectionName AS CHARACTER):
+    RETURN configurationObject:GetSection(THIS-OBJECT:Path + ":" + sectionName).
+  END METHOD.
+
   METHOD PUBLIC "System.Collections.Generic.Dictionary<character, System.Object>+Enumerator" GetChildren():
     DEFINE VARIABLE childConfigurationSections AS "System.Collections.Generic.Dictionary<character, System.Object>" NO-UNDO.
     DEFINE VARIABLE configurationSection       AS ConfigurationSection                                              NO-UNDO.
@@ -62,6 +66,7 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
       envVarName = STRING(configurationEnum:Current:Key).
       envVarValue = STRING(configurationEnum:Current:Value).
 
+/*      MESSAGE "CHECK->" + envVarName.*/
       /* get child sections */
       IF envVarName MATCHES THIS-OBJECT:Path + ":*" THEN DO:
         

@@ -108,6 +108,84 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
   END METHOD.
 
   @Test.
+  METHOD PUBLIC VOID canAddElasticsearchToSerilog(  ):
+
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Name","Elasticsearch").
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Args__nodeUris","http://localhost:9200").
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Args__indexFormat","application-~{0:yyyy.MM.dd~}").
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Args__emitEventFailure","ThrowException").
+
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder
+      :SetBasePath("..")
+      :AddJsonFile("appsettings.json", FALSE)
+      :AddEnvironmentVariables().
+
+    DEFINE VARIABLE configuration AS Configuration NO-UNDO.
+    configuration = configurationBuilder:Build().
+    Assert:NotNull(configuration).      
+
+/*    DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.*/
+/*    configurationEnumerator = configuration:GetChildren().                                                                      */
+/*    DO WHILE(configurationEnumerator:MoveNext()):                                                                               */
+/*      MESSAGE SUBSTITUTE("  CONFIG &1=&2", configurationEnumerator:Current:Key, configurationEnumerator:Current:Value).         */
+/*    END.                                                                                                                        */
+
+    DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
+    configurationSection = configuration:GetSection("Serilog").
+    Assert:NotNull(configurationSection).
+
+    configurationSection = configuration:GetSection("Serilog:WriteTo").
+    Assert:NotNull(configurationSection).
+
+    configurationSection = configuration:GetSection("Serilog:WriteTo:0").
+    Assert:NotNull(configurationSection).
+
+    configurationSection = configuration:GetSection("Serilog:WriteTo:0:Name").
+    Assert:Equals("Console", configurationSection:Value).
+
+    configurationSection = configuration:GetSection("Serilog:WriteTo:1:Name").
+    Assert:Equals("Elasticsearch", configurationSection:Value).
+
+    configurationSection = configuration:GetSection("Serilog:WriteTo:1").
+    Assert:NotNull(configurationSection).
+
+    DEFINE VARIABLE argsConfigurationSection AS ConfigurationSection NO-UNDO.
+    argsConfigurationSection = configuration:GetSection("Serilog:WriteTo:1:Args").
+    Assert:NotNull(argsConfigurationSection).
+
+    DEFINE VARIABLE argsConfigurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+    argsConfigurationEnumerator = argsConfigurationSection:GetChildren().
+    Assert:NotNull(argsConfigurationEnumerator).
+
+    DEFINE VARIABLE iChildCount AS INTEGER NO-UNDO.
+    iChildCount = 0.
+    DO WHILE(argsConfigurationEnumerator:MoveNext()):
+      iChildCount = iChildCount + 1.
+
+      DEFINE VARIABLE childSection0 AS ConfigurationSection NO-UNDO.
+      childSection0 = CAST(argsConfigurationEnumerator:Current:Value, ConfigurationSection).
+      Assert:NotNull(childSection0).
+
+      IF (childSection0:Key = "nodeUris") THEN DO:
+        Assert:Equals("http://localhost:9200", childSection0:Value).
+      END.
+      ELSE IF (childSection0:Key = "indexFormat") THEN DO:
+        Assert:Equals("application-~{0:yyyy.MM.dd~}", childSection0:Value).
+      END.
+      ELSE IF (childSection0:Key = "emitEventFailure") THEN DO:
+        Assert:Equals("ThrowException", childSection0:Value).
+      END.
+      ELSE DO:
+        Assert:IsFalse(TRUE).
+      END.
+    END.
+    Assert:Equals(3, iChildCount).
+
+  END METHOD.
+
+  @Test.
   METHOD PUBLIC VOID canAddNewArrayEnvVars(  ):
 
     System.Environment:SetEnvironmentVariable("ArrayTest__0__integerSetting","0").
@@ -219,6 +297,11 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
   @TearDown.
   METHOD PUBLIC VOID tearDown():
     System.Environment:SetEnvironmentVariable("Application__stringSetting", "").
+
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Name","").
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Args__nodeUris","").
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Args__indexFormat","").
+    System.Environment:SetEnvironmentVariable("Serilog__WriteTo__1__Args__emitEventFailure","").
 
     System.Environment:SetEnvironmentVariable("ArrayTest__0__integerSetting","").
     System.Environment:SetEnvironmentVariable("ArrayTest__0__stringSetting","").

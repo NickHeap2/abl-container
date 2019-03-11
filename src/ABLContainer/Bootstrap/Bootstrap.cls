@@ -183,6 +183,15 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           writeToSection = CAST(writeToEnumerator:Current:Value, ConfigurationSection).
       
           DEFINE VARIABLE writeToName              AS CHARACTER                                                                    NO-UNDO.
+
+          DEFINE VARIABLE nameSection AS ConfigurationSection NO-UNDO.
+          nameSection = writeToSection:GetSection("Name").
+          IF nameSection:VALUE = ? THEN DO:
+            NEXT _WRITETO.
+          END.
+
+          writeToName = nameSection:Value.
+          keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<System.String, System.String>"("write-to:" + writeToName, "")).
       
           DEFINE VARIABLE writeToSettingEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
           writeToSettingEnumerator = writeToSection:GetChildren().
@@ -192,11 +201,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
             writeToSettingSection = CAST(writeToSettingEnumerator:Current:Value, ConfigurationSection).
         
             /*            MESSAGE SUBSTITUTE("writeToSettingSection &1->&2", writeToSettingSection:Key, writeToSettingSection:Value).*/
-            IF writeToSettingSection:Key = "Name" THEN DO:
-              writeToName = writeToSettingSection:Value.
-              keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<System.String, System.String>"("write-to:" + writeToName, "")).
-            END.
-            ELSE IF writeToSettingSection:Key = "Args" THEN DO:
+            IF writeToSettingSection:Key = "Args" THEN DO:
               DEFINE VARIABLE argsEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
               argsEnumerator = writeToSettingSection:GetChildren().
               _ARGS:
@@ -212,19 +217,53 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       
         END. /*_WRITETO*/
       END.
+      ELSE IF configurationSection:Key = "Enrich" THEN DO:
+        DEFINE VARIABLE enrichEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+        enrichEnumerator = configurationSection:GetChildren().
+        _ENRICH:
+        DO WHILE(enrichEnumerator:MoveNext()):
+          DEFINE VARIABLE enrichSection AS ConfigurationSection NO-UNDO.
+          enrichSection = CAST(enrichEnumerator:Current:Value, ConfigurationSection).
+          /*          MESSAGE SUBSTITUTE("Enrich &1->&2", usingSection:Key, usingSection:Value).*/
+
+          IF enrichSection:Key = "WithMachineName" THEN DO:
+            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:MachineName", System.Environment:MachineName)).
+          END. 
+        END. /*_ENRICH*/
+      END.
+      ELSE IF configurationSection:Key = "Properties" THEN DO:
+        DEFINE VARIABLE propertyEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+        propertyEnumerator = configurationSection:GetChildren().
+        _PROPERTY:
+        DO WHILE(propertyEnumerator:MoveNext()):
+          DEFINE VARIABLE propertySection AS ConfigurationSection NO-UNDO.
+          propertySection = CAST(propertyEnumerator:Current:Value, ConfigurationSection).
+          /*          MESSAGE SUBSTITUTE("Properties &1->&2", usingSection:Key, usingSection:Value).*/
+
+          keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:" + propertySection:Key, propertySection:Value)).
+        END. /*_PROPERTY*/
+      END.
   
     END. /*SERILOG*/
-    
-    /*    DEFINE VARIABLE kvpEnumerator AS "System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<character, character>>" NO-UNDO.*/
-    /*    kvpEnumerator = keyvaluepairs:GetEnumerator().                                                                                                   */
-    /*    DO WHILE(kvpEnumerator:MoveNext()):                                                                                                              */
-    /*      MESSAGE SUBSTITUTE("Serilog setting: &1=&2", kvpEnumerator:Current:Key, kvpEnumerator:Current:Value).                                          */
-    /*    END.                                                                                                                                             */
 
     loggerConfiguration:ReadFrom:KeyValuePairs(keyvaluepairs).
     Serilog.Log:Logger = loggerConfiguration:CreateLogger().
 
     Serilog.Log:Logger:Information("Serilog has been configured.").
+
+    DEFINE VARIABLE kvpEnumerator AS "System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<character, character>>" NO-UNDO.
+    kvpEnumerator = keyvaluepairs:GetEnumerator().
+    DO WHILE(kvpEnumerator:MoveNext()):
+      Serilog.Log:Logger:Debug(SUBSTITUTE("    Serilog setting: &1=&2", kvpEnumerator:Current:Key, kvpEnumerator:Current:Value)).
+    END.
+    
+    DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
+    configurationEnumerator = ABLContainer.Configuration.Configuration:Current:GetChildren().
+
+    Log:Debug("Configuration").            
+    DO WHILE(configurationEnumerator:MoveNext()):
+      Log:Debug("  ~{Key~}=~{Value~}", BOX(configurationEnumerator:Current:Key), BOX(configurationEnumerator:Current:Value)).            
+    END.
   
   END METHOD.
   
