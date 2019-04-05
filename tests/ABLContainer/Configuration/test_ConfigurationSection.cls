@@ -43,14 +43,14 @@ CLASS ABLContainer.Configuration.test_ConfigurationSection:
     configurationSection = configuration:GetSection("Application").
     Assert:NotNull(configurationSection).
 
-    DEFINE VARIABLE bindingObject AS BindingObject NO-UNDO.
-    bindingObject = NEW BindingObject().
+    DEFINE VARIABLE mock_bindingObject AS mock_BindingObject NO-UNDO.
+    mock_bindingObject = NEW mock_BindingObject().
     
-    configurationSection:Bind(bindingObject).
+    configurationSection:Bind(mock_bindingObject).
     
-    Assert:Equals(true, bindingObject:LogicalSetting).
-    Assert:Equals(1, bindingObject:IntegerSetting).
-    Assert:Equals("setting", bindingObject:StringSetting).
+    Assert:Equals(true, mock_bindingObject:LogicalSetting).
+    Assert:Equals(1, mock_bindingObject:IntegerSetting).
+    Assert:Equals("setting", mock_bindingObject:StringSetting).
 
   END METHOD.
 

@@ -30,7 +30,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
     ELSE DO:
       configurationDictionary:Add(settingName, settingValue).
     END.
-  END METHOD.   
+  END METHOD.
 
   METHOD PRIVATE VOID AddSetting(settingName AS CHARACTER, propertyType AS INTEGER, propertyName AS CHARACTER, theObject AS JsonObject):
     DEFINE VARIABLE settingValue AS CHARACTER NO-UNDO.
@@ -106,9 +106,9 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       THEN DO:
         NEXT _ENV_VARS.
       END.
-      
+
       envVarName = REPLACE(envVarName, "__", ":").
-      
+
       /*      MESSAGE envVarName "->" envVarValue.*/
       IF configurationDictionary:ContainsKey(envVarName) THEN DO:
         configurationDictionary[envVarName] = envVarValue.

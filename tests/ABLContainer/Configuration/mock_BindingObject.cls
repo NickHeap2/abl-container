@@ -2,7 +2,7 @@ USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Configuration.BindingObject INHERITS System.Object: 
+CLASS ABLContainer.Configuration.mock_BindingObject INHERITS System.Object: 
 
   DEFINE PUBLIC PROPERTY IntegerSetting AS INTEGER NO-UNDO
     GET.

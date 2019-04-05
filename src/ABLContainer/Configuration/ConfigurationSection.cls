@@ -33,10 +33,10 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
       configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
 
-      /* is this a value node? */      
+      /* is this a value node? */
       IF configurationSection:Value <> ? THEN DO:
         DYNAMIC-PROPERTY(bindObject, configurationSection:Key) = configurationSection:Value NO-ERROR.
-      END.      
+      END.
     END.
 
   END METHOD.
@@ -52,7 +52,7 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
     DEFINE VARIABLE parentLevel                AS INTEGER                                                           NO-UNDO.
     DEFINE VARIABLE childLevel                 AS INTEGER                                                           NO-UNDO.
     childConfigurationSections = NEW "System.Collections.Generic.Dictionary<character, System.Object>"().
-    
+
     parentLevel = NUM-ENTRIES(THIS-OBJECT:Path, ":").
 
     DEFINE VARIABLE envVarName        AS CHARACTER                                                                NO-UNDO.
@@ -60,7 +60,7 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
     DEFINE VARIABLE configurationEnum AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
 
     configurationEnum = configurationObject:GetChildren().
-    
+
     _ENV_VARS:
     DO WHILE(configurationEnum:MoveNext()):
       envVarName = STRING(configurationEnum:Current:Key).
@@ -69,9 +69,9 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
 /*      MESSAGE "CHECK->" + envVarName.*/
       /* get child sections */
       IF envVarName MATCHES THIS-OBJECT:Path + ":*" THEN DO:
-        
+
         childLevel = NUM-ENTRIES(envVarName, ":").
-        
+
         DEFINE VARIABLE childPath AS CHARACTER NO-UNDO.
         DEFINE VARIABLE iLevel    AS INTEGER   NO-UNDO.
         childPath = "".
@@ -79,13 +79,13 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
           IF iLevel <> 1 THEN childPath = childPath + ":".
           childPath = childPath + ENTRY(iLevel, envVarName, ":").
         END.
-        
+
         /* add this child path if not already present */
-        IF NOT childConfigurationSections:ContainsKey(childPath) THEN DO:        
+        IF NOT childConfigurationSections:ContainsKey(childPath) THEN DO:
           configurationSection = NEW ConfigurationSection(configurationObject).
           configurationSection:Key = ENTRY(NUM-ENTRIES(childPath, ":"), childPath, ":").
           configurationSection:Path = childPath.
-          
+
           /* is this a final value? */
           IF childLevel = parentLevel + 1 THEN DO:
             configurationSection:Value = envVarValue.
@@ -101,7 +101,7 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
         END.
       END.
     END.
-    
+
     RETURN childConfigurationSections:GetEnumerator().
   END METHOD.
 

@@ -76,6 +76,18 @@ CLASS ABLContainer.Logging.Log:
     Serilog.Log:Logger:Debug(messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
   END METHOD.
 
+  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER):
+    Serilog.Log:Logger:Warning(messageTemplate).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER, messageValue AS System.Object):
+    Serilog.Log:Logger:Warning(messageTemplate, ToArray1(messageValue)).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
+    Serilog.Log:Logger:Warning(messageTemplate, ToArray2(messageValue1, messageValue2)).
+  END METHOD.
+
   METHOD STATIC System.Array ToArray1(messageValue AS System.Object):
     IF NOT VALID-OBJECT(propertiesArray1) THEN DO:
       propertiesArray1 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 1).

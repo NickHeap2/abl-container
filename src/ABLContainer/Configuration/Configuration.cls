@@ -31,22 +31,22 @@ CLASS ABLContainer.Configuration.Configuration:
 
     DEFINE VARIABLE configKey         AS CHARACTER             NO-UNDO.
     DEFINE VARIABLE configValue       AS CHARACTER             NO-UNDO.
-    DEFINE VARIABLE configurationEnum AS IDictionaryEnumerator NO-UNDO.   
+    DEFINE VARIABLE configurationEnum AS IDictionaryEnumerator NO-UNDO.
     configurationEnum = configurationDictionary:GetEnumerator().
     _ENV_VARS:
     DO WHILE(configurationEnum:MoveNext()):
       configKey = STRING(configurationEnum:Key).
       configValue = STRING(configurationEnum:Value).
-      
+
       IF configKey MATCHES sectionName THEN DO:
         configurationSection:Value = configValue.
         LEAVE _ENV_VARS.
       END.
     END.
-    
+
     RETURN configurationSection.
   END METHOD.
-  
+
   METHOD PUBLIC CHARACTER Item (key AS CHARACTER):
 
     IF configurationDictionary:ContainsKey(key) THEN DO:
@@ -57,6 +57,5 @@ CLASS ABLContainer.Configuration.Configuration:
     END.
 
   END METHOD.
-  
 
 END CLASS.
