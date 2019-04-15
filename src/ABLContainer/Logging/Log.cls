@@ -10,6 +10,7 @@ CLASS ABLContainer.Logging.Log:
   DEFINE STATIC VARIABLE propertiesArray3 AS CLASS System.Array NO-UNDO.
   DEFINE STATIC VARIABLE propertiesArray4 AS CLASS System.Array NO-UNDO.
   DEFINE STATIC VARIABLE propertiesArray5 AS CLASS System.Array NO-UNDO.
+  DEFINE STATIC VARIABLE propertiesArray6 AS CLASS System.Array NO-UNDO.
 
   METHOD STATIC VOID Information (messageTemplate AS CHARACTER):
     Serilog.Log:Logger:Information(messageTemplate).
@@ -27,12 +28,16 @@ CLASS ABLContainer.Logging.Log:
     Serilog.Log:Logger:Information(messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):  
+  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
     Serilog.Log:Logger:Information(messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):  
+  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):
     Serilog.Log:Logger:Information(messageTemplate, ToArray5(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5)).
+  END METHOD.
+
+  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
+    Serilog.Log:Logger:Information(messageTemplate, ToArray6(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5, messageValue6)).
   END METHOD.
 
   METHOD STATIC VOID Error (messageTemplate AS CHARACTER):
@@ -64,15 +69,15 @@ CLASS ABLContainer.Logging.Log:
     Serilog.Log:Logger:Debug(messageTemplate, ToArray1(messageValue)).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):    
+  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
     Serilog.Log:Logger:Debug(messageTemplate, ToArray2(messageValue1, messageValue2)).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object): 
+  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object):
     Serilog.Log:Logger:Debug(messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):  
+  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
     Serilog.Log:Logger:Debug(messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
   END METHOD.
 
@@ -143,12 +148,27 @@ CLASS ABLContainer.Logging.Log:
     RETURN propertiesArray5.
   END METHOD.
 
+  METHOD STATIC System.Array ToArray6(messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
+    IF NOT VALID-OBJECT(propertiesArray6) THEN DO:
+      propertiesArray6 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 6).
+    END.
+
+    propertiesArray6:SetValue(messageValue1, 0).
+    propertiesArray6:SetValue(messageValue2, 1).
+    propertiesArray6:SetValue(messageValue3, 2).
+    propertiesArray6:SetValue(messageValue4, 3).
+    propertiesArray6:SetValue(messageValue5, 4).
+    propertiesArray6:SetValue(messageValue6, 5).
+    RETURN propertiesArray6.
+  END METHOD.
+
   METHOD STATIC VOID ClearData():
     DELETE OBJECT Log:propertiesArray1 NO-ERROR.
     DELETE OBJECT Log:propertiesArray2 NO-ERROR.
     DELETE OBJECT Log:propertiesArray3 NO-ERROR.
     DELETE OBJECT Log:propertiesArray4 NO-ERROR.
     DELETE OBJECT Log:propertiesArray5 NO-ERROR.
+    DELETE OBJECT Log:propertiesArray6 NO-ERROR.
   END.
 
 END CLASS.

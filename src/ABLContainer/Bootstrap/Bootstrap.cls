@@ -36,7 +36,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       :AddEnvironmentVariables().
     configuration = configurationBuilder:Build().
     ABLContainer.Configuration.Configuration:Current = configuration.
-    
+
     RETURN configuration.
   END METHOD.
   
@@ -85,7 +85,6 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         OR (SEARCH(StartupProcedure) = ?
         AND SEARCH(REPLACE(StartupProcedure, ".p", ".r")) = ?)
       THEN DO:
-        MESSAGE "proc not found".
         Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
         RETURN.
       END.
@@ -97,7 +96,6 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         RUN VALUE(StartupProcedure).
     
         CATCH er AS Progress.Lang.Error :
-          MESSAGE "fatal error".
           Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
           LEAVE _RUNNING_LOOP.
         END CATCH.
@@ -168,7 +166,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
             DO WHILE(overrideEnumerator:MoveNext()):
               DEFINE VARIABLE overrideSection AS ConfigurationSection NO-UNDO.
               overrideSection = CAST(overrideEnumerator:Current:Value, ConfigurationSection).
-          
+
               keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("minimum-level:override:" + overrideSection:Key, overrideSection:Value)).              
             END.
           END.
@@ -181,7 +179,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         DO WHILE(writeToEnumerator:MoveNext()):
           DEFINE VARIABLE writeToSection AS ConfigurationSection NO-UNDO.
           writeToSection = CAST(writeToEnumerator:Current:Value, ConfigurationSection).
-      
+
           DEFINE VARIABLE writeToName              AS CHARACTER                                                                    NO-UNDO.
 
           DEFINE VARIABLE nameSection AS ConfigurationSection NO-UNDO.
@@ -192,14 +190,14 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
           writeToName = nameSection:Value.
           keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<System.String, System.String>"("write-to:" + writeToName, "")).
-      
+
           DEFINE VARIABLE writeToSettingEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
           writeToSettingEnumerator = writeToSection:GetChildren().
           _WRITETO_SETTINGS:
           DO WHILE(writeToSettingEnumerator:MoveNext()):
             DEFINE VARIABLE writeToSettingSection AS ConfigurationSection NO-UNDO.
             writeToSettingSection = CAST(writeToSettingEnumerator:Current:Value, ConfigurationSection).
-        
+
             /*            MESSAGE SUBSTITUTE("writeToSettingSection &1->&2", writeToSettingSection:Key, writeToSettingSection:Value).*/
             IF writeToSettingSection:Key = "Args" THEN DO:
               DEFINE VARIABLE argsEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
@@ -208,13 +206,13 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
               DO WHILE(argsEnumerator:MoveNext()):
                 DEFINE VARIABLE argsSection AS ConfigurationSection NO-UNDO.
                 argsSection = CAST(argsEnumerator:Current:Value, ConfigurationSection).
-          
+
                 /*                MESSAGE SUBSTITUTE("argsSection &1->&2", argsSection:Key, argsSection:Value).*/
                 keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("write-to:" + writeToName + "." + argsSection:Key, argsSection:Value)).
               END. /*_ARGS*/
             END.
           END. /*_WRITETO_SETTINGS*/
-      
+
         END. /*_WRITETO*/
       END.
       ELSE IF configurationSection:Key = "Enrich" THEN DO:
@@ -228,7 +226,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
           IF enrichSection:Key = "WithMachineName" THEN DO:
             keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:MachineName", System.Environment:MachineName)).
-          END. 
+          END.
         END. /*_ENRICH*/
       END.
       ELSE IF configurationSection:Key = "Properties" THEN DO:
@@ -256,7 +254,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     DO WHILE(kvpEnumerator:MoveNext()):
       Serilog.Log:Logger:Debug(SUBSTITUTE("    Serilog setting: &1=&2", kvpEnumerator:Current:Key, kvpEnumerator:Current:Value)).
     END.
-    
+
     DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
     configurationEnumerator = ABLContainer.Configuration.Configuration:Current:GetChildren().
 
@@ -264,9 +262,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     DO WHILE(configurationEnumerator:MoveNext()):
       Log:Debug("  ~{Key~}=~{Value~}", BOX(configurationEnumerator:Current:Key), BOX(configurationEnumerator:Current:Value)).            
     END.
-  
+
   END METHOD.
-  
+
   METHOD PUBLIC STATIC LOGICAL ConnectToDatabases():
     DEFINE VARIABLE connectionStringsEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
     
