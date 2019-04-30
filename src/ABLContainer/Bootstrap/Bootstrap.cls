@@ -56,6 +56,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
     SetSettings(configuration).
 
+    Log:Information("OpenEdge version: ~{OpenEdgeVersion~}", BOX(PROVERSION(1))).
+    Log:Information(".net runtime version: ~{DotnetRuntimeVersion~}", System.Environment:Version).
+
     Log:Information("StartupProcedure: ~{StartupProcedure~}", BOX(StartupProcedure)).
     Log:Information("ProPath: ~{ProPath~}", BOX(PROPATH)).
     Log:Information("UseProfiler: ~{UseProfiler~}", BOX(UseProfiler)).
