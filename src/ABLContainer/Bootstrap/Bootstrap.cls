@@ -9,7 +9,7 @@ USING System.Collections.Generic.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Bootstrap.Bootstrap: 
+CLASS ABLContainer.Bootstrap.Bootstrap:
 
   DEFINE PUBLIC STATIC PROPERTY ConnectionStrings AS "System.Collections.Generic.List<character>" NO-UNDO
     GET.
@@ -33,13 +33,15 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       :SetBasePath(".")
       :AddJsonFile("appsettings.json", TRUE)
       :AddJsonFile(SUBSTITUTE("appsettings.&1.json", environment), TRUE)
+      :AddKeyPerFile(".\secrets", TRUE)
+      :AddKeyPerFile("C:\ProgramData\Docker\secrets", TRUE)
       :AddEnvironmentVariables().
     configuration = configurationBuilder:Build().
     ABLContainer.Configuration.Configuration:Current = configuration.
 
     RETURN configuration.
   END METHOD.
-  
+
   METHOD PUBLIC STATIC VOID SetSettings(configuration AS Configuration):
     /* configure logging first */
     SetSeriLogSettings(configuration).
@@ -47,7 +49,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     SetOpenEdgeSettings(configuration).
 
   END METHOD.
-  
+
   METHOD PUBLIC STATIC VOID Start(environment AS CHARACTER):
     ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
 
@@ -69,7 +71,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     ELSE DO:
       IF UseProfiler THEN DO:
         OS-CREATE-DIR VALUE("profile").
-    
+
         PROFILER:ENABLED = TRUE.
         PROFILER:DIRECTORY = "profile".
         PROFILER:FILE-NAME = SUBSTITUTE("profile/profiler_&1_&2_&3@&4.prof", YEAR(TODAY), MONTH(TODAY), DAY(TODAY), REPLACE(STRING(TIME, "HH:MM:SS"),":","")).
@@ -78,11 +80,11 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         PROFILER:PROFILING = TRUE.
         PROFILER:TRACE-FILTER = "*".
       END.
-    
+
       /*    MESSAGE "StartupProcedure->" + StartupProcedure.*/
       /*    MESSAGE "ProPath->" + UseProPath.               */
       /*    MESSAGE "UseProfiler->" + STRING(UseProfiler).  */
-    
+
       /* try and run the startup procedure */
       IF StartupProcedure = ""
         OR (SEARCH(StartupProcedure) = ?
@@ -91,13 +93,13 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
         RETURN.
       END.
-    
+
       _RUNNING_LOOP:
       DO ON STOP UNDO, LEAVE
         ON ERROR UNDO, LEAVE:
-        
+
         RUN VALUE(StartupProcedure).
-    
+
         CATCH er AS Progress.Lang.Error :
           Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
           LEAVE _RUNNING_LOOP.
@@ -112,26 +114,26 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       PROFILER:WRITE-DATA().
     END.
 
-  END METHOD.  
-  
+  END METHOD.
+
   METHOD PUBLIC STATIC VOID SetSeriLogSettings(configuration AS Configuration):
     DEFINE VARIABLE serilogSection AS ConfigurationSection NO-UNDO.
     serilogSection = configuration:GetSection("SeriLog").
     IF NOT VALID-OBJECT(serilogSection) THEN DO:
       RETURN.
     END.
-  
+
     DEFINE VARIABLE loggerConfiguration AS LoggerConfiguration NO-UNDO.
     loggerConfiguration = NEW loggerConfiguration().
-  
+
     DEFINE VARIABLE keyvaluepairs AS "IList<System.Collections.Generic.KeyValuePair<character, character>>" NO-UNDO.
     keyvaluepairs = NEW "List<System.Collections.Generic.KeyValuePair<character, character>>"().
-  
+
     DEFINE VARIABLE serilogEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
     serilogEnumerator = serilogSection:GetChildren().
     _SERILOG:
     DO WHILE(serilogEnumerator:MoveNext()):
-      
+
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
       configurationSection = CAST(serilogEnumerator:Current:Value, ConfigurationSection).
 
@@ -145,7 +147,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           DEFINE VARIABLE usingSection AS ConfigurationSection NO-UNDO.
           usingSection = CAST(usingEnumerator:Current:Value, ConfigurationSection).
           /*          MESSAGE SUBSTITUTE("Using &1->&2", usingSection:Key, usingSection:Value).*/
-        
+
           DEFINE VARIABLE cLastPart AS CHARACTER NO-UNDO.
           cLastPart = SUBSTRING(usingSection:Value, R-INDEX(usingSection:Value, ".") + 1).
           keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("using:" + cLastPart, usingSection:Value)).
@@ -160,8 +162,8 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           minLevelSection = CAST(minLevelEnumerator:Current:Value, ConfigurationSection).
 
           IF minLevelSection:Key = "Default" THEN DO:
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("minimum-level", minLevelSection:Value)). 
-          END. 
+            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("minimum-level", minLevelSection:Value)).
+          END.
           ELSE IF minLevelSection:Key = "Override" THEN DO:
             DEFINE VARIABLE overrideEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
             overrideEnumerator = minLevelSection:GetChildren().
@@ -170,7 +172,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
               DEFINE VARIABLE overrideSection AS ConfigurationSection NO-UNDO.
               overrideSection = CAST(overrideEnumerator:Current:Value, ConfigurationSection).
 
-              keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("minimum-level:override:" + overrideSection:Key, overrideSection:Value)).              
+              keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("minimum-level:override:" + overrideSection:Key, overrideSection:Value)).
             END.
           END.
         END.
@@ -244,7 +246,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:" + propertySection:Key, propertySection:Value)).
         END. /*_PROPERTY*/
       END.
-  
+
     END. /*SERILOG*/
 
     loggerConfiguration:ReadFrom:KeyValuePairs(keyvaluepairs).
@@ -261,20 +263,20 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
     configurationEnumerator = ABLContainer.Configuration.Configuration:Current:GetChildren().
 
-    Log:Debug("Configuration").            
+    Log:Debug("Configuration").
     DO WHILE(configurationEnumerator:MoveNext()):
-      Log:Debug("  ~{Key~}=~{Value~}", BOX(configurationEnumerator:Current:Key), BOX(configurationEnumerator:Current:Value)).            
+      Log:Debug("  ~{Key~}=~{Value~}", BOX(configurationEnumerator:Current:Key), BOX(configurationEnumerator:Current:Value)).
     END.
 
   END METHOD.
 
   METHOD PUBLIC STATIC LOGICAL ConnectToDatabases():
     DEFINE VARIABLE connectionStringsEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
-    
+
     connectionStringsEnumerator = ConnectionStrings:GetEnumerator().
     DO WHILE(connectionStringsEnumerator:MoveNext()):
       DEFINE VARIABLE databaseConnectionString AS CHARACTER NO-UNDO.
-        
+
       databaseConnectionString = connectionStringsEnumerator:Current.
 
       Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(databaseConnectionString)).
@@ -285,17 +287,17 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         RETURN FALSE.
       END.
     END.
-  
+
     RETURN TRUE.
   END.
-  
+
   METHOD PUBLIC STATIC VOID SetOpenEdgeSettings(configuration AS Configuration):
     DEFINE VARIABLE openedgeSection AS ConfigurationSection NO-UNDO.
     openedgeSection = configuration:GetSection("OpenEdge").
     IF NOT VALID-OBJECT(openedgeSection) THEN DO:
       RETURN.
     END.
-    
+
     DEFINE VARIABLE openedgeEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
     openedgeEnumerator = openedgeSection:GetChildren().
     _OPENEDGE:
@@ -303,14 +305,15 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
       configurationSection = CAST(openedgeEnumerator:Current:Value, ConfigurationSection).
-      
+
       /*      MESSAGE SUBSTITUTE("configurationSection &1->&2", configurationSection:Key, configurationSection:Value).*/
-      
+
       IF configurationSection:Key = "startupProcedure" THEN DO:
         Bootstrap:StartupProcedure = configurationSection:Value.
       END.
       ELSE IF configurationSection:Key = "propath" THEN DO:
-        PROPATH = configurationSection:Value.
+        /* trap error here as change of propath whilst .pl is loaded causes error */
+        PROPATH = configurationSection:Value NO-ERROR.
       END.
       ELSE IF configurationSection:Key = "profiler" THEN DO:
         Bootstrap:UseProfiler = LOGICAL(configurationSection:VALUE).
@@ -318,9 +321,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       ELSE IF configurationSection:Key = "databases" THEN DO:
         DEFINE VARIABLE databaseSection     AS ConfigurationSection                                                         NO-UNDO.
         DEFINE VARIABLE databasesEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
-    
+
         databasesEnumerator = configurationSection:GetChildren().
-    
+
         _DATABASE:
         DO WHILE(databasesEnumerator:MoveNext()):
 
@@ -331,7 +334,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
           DEFINE VARIABLE databaseConnectionString AS CHARACTER                                                                    NO-UNDO.
 
-          databaseConnectionString = "".          
+          databaseConnectionString = "".
           databaseEnumerator = databaseSection:GetChildren().
           _DB_SETTING:
           DO WHILE(databaseEnumerator:MoveNext()):
@@ -363,14 +366,14 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
             databaseConnectionString = TRIM(databaseConnectionString).
             ABLContainer.Bootstrap.Bootstrap:ConnectionStrings:Add(databaseConnectionString).
           END.
-    
+
         END. /*_DATABASE*/
-  
+
       END. /*databases*/
 
     END. /*_OPENEDGE*/
 
   END METHOD.
-  
+
 
 END CLASS.

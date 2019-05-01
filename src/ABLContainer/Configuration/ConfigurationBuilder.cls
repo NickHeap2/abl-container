@@ -6,14 +6,14 @@ USING System.IO.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Configuration.ConfigurationBuilder: 
+CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
   DEFINE VARIABLE basePath                AS CHARACTER                                                     NO-UNDO.
   DEFINE VARIABLE configurationDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>" NO-UNDO.
 
   METHOD PRIVATE VOID AddArraySetting(settingName AS CHARACTER, propertyType AS INTEGER, propertyIndex AS INTEGER, theArray AS JsonArray):
     DEFINE VARIABLE settingValue AS CHARACTER NO-UNDO.
-    
+
     IF propertyType = 2 THEN DO:
       settingValue = STRING(theArray:GetInteger(propertyIndex)).
     END.
@@ -34,7 +34,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
   METHOD PRIVATE VOID AddSetting(settingName AS CHARACTER, propertyType AS INTEGER, propertyName AS CHARACTER, theObject AS JsonObject):
     DEFINE VARIABLE settingValue AS CHARACTER NO-UNDO.
-    
+
     IF propertyType = 2 THEN DO:
       settingValue = STRING(theObject:GetInteger(propertyName)).
     END.
@@ -51,6 +51,54 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
     ELSE DO:
       configurationDictionary:Add(settingName, settingValue).
     END.
+  END METHOD.
+
+  METHOD PUBLIC ConfigurationBuilder AddKeyPerFile(directoryName AS CHARACTER, optional AS LOGICAL):
+
+    IF (NOT System.IO.Path:IsPathRooted(directoryName))
+      AND basePath <> ""
+    THEN DO:
+      directoryName = System.IO.Path:Combine(basePath, directoryName).
+    END.
+
+    IF NOT Directory:Exists(directoryName) THEN DO:
+      IF optional = FALSE THEN DO:
+        UNDO, THROW NEW Progress.Lang.AppError("Directory doesn't exist!").
+      END.
+      RETURN THIS-OBJECT.
+    END.
+
+    DEFINE VARIABLE fileName AS CHARACTER FORMAT "X(100)" NO-UNDO.
+    DEFINE VARIABLE filePath AS CHARACTER FORMAT "X(200)" NO-UNDO.
+    DEFINE VARIABLE attributeList AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE fileContents AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE settingName AS CHARACTER NO-UNDO.
+
+    /*loop through files in dir*/
+    INPUT FROM OS-DIR(directoryName).
+    _FILES:
+    REPEAT:
+      SET fileName filePath attributeList WITH WIDTH 320.
+      IF (NOT attributeList MATCHES "*F*")
+        OR (NOT fileName MATCHES "*__*")
+      THEN DO:
+        NEXT _FILES.
+      END.
+
+      fileContents = System.IO.File:ReadAllText(filePath).
+
+      settingName = REPLACE(fileName, "__", ":").
+
+      IF configurationDictionary:ContainsKey(settingName) THEN DO:
+        configurationDictionary[settingName] = fileContents.
+      END.
+      ELSE DO:
+        configurationDictionary:Add(settingName, fileContents).
+      END.
+    END.
+    INPUT CLOSE.
+
+    RETURN THIS-OBJECT.
   END METHOD.
 
   METHOD PUBLIC ConfigurationBuilder AddJsonFile(fileName AS CHARACTER, optional AS LOGICAL):
@@ -70,12 +118,12 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
     parser = NEW Progress.Json.ObjectModel.ObjectModelParser().
     appsettingsObject = CAST(parser:ParseFile(fileName), JsonObject).
-    
+
     AddObjectValues("", appsettingsObject).
-    
+
     RETURN THIS-OBJECT.
   END METHOD.
-    
+
   CONSTRUCTOR PUBLIC ConfigurationBuilder (  ):
     configurationDictionary = NEW "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>"().
   END CONSTRUCTOR.
@@ -87,7 +135,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
   METHOD PUBLIC ConfigurationBuilder AddEnvironmentVariables(prefix AS CHARACTER):
     DEFINE VARIABLE envVars AS IDictionary NO-UNDO.
     envVars = System.Environment:GetEnvironmentVariables().
-    
+
     DEFINE VARIABLE dictEnum AS IDictionaryEnumerator NO-UNDO.
 
     dictEnum = envVars:GetEnumerator().
@@ -116,23 +164,23 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       ELSE DO:
         configurationDictionary:Add(envVarName, envVarValue).
       END.
-      
+
     END.
-    
+
     RETURN THIS-OBJECT.
   END METHOD.
 
 
   METHOD PRIVATE VOID AddObjectValues(baseSetting AS CHARACTER, theObject AS JsonObject):
-        
+
     DEFINE VARIABLE propertyNames AS CHARACTER EXTENT NO-UNDO.
     propertyNames = theObject:GetNames().
-    
+
     DEFINE VARIABLE propertyName      AS CHARACTER NO-UNDO.
     DEFINE VARIABLE propertyType      AS INTEGER   NO-UNDO.
     DEFINE VARIABLE propertyNameIndex AS INTEGER   NO-UNDO.
     DO propertyNameIndex = 1 TO EXTENT(propertyNames):
-      
+
       propertyName = propertyNames[propertyNameIndex].
       propertyType = theObject:GetType(propertyName).
 
@@ -143,19 +191,19 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       END.
       ELSE IF propertyType = 5 THEN DO:
         DEFINE VARIABLE theArray AS JsonArray NO-UNDO.
-      
+
         theArray = theObject:GetJsonArray(propertyName).
-    
+
         DEFINE VARIABLE arrayObject    AS JsonObject NO-UNDO.
         DEFINE VARIABLE arrayEntryType AS INTEGER    NO-UNDO.
         DEFINE VARIABLE arrayIndex     AS INTEGER    NO-UNDO.
         DO arrayIndex = 1 TO theArray:LENGTH:
-        
+
           arrayEntryType = theArray:GetType(arrayIndex).
-        
+
           IF arrayEntryType = 4 THEN DO:
             arrayObject = theArray:GetJsonObject(arrayIndex).
-            AddObjectValues(baseSetting + propertyName + ":" + STRING(arrayIndex - 1) + ":", arrayObject).          
+            AddObjectValues(baseSetting + propertyName + ":" + STRING(arrayIndex - 1) + ":", arrayObject).
           END.
           ELSE DO:
             AddArraySetting(baseSetting + propertyName + ":" + STRING(arrayIndex - 1), arrayEntryType, arrayIndex, theArray).
@@ -167,18 +215,18 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       END.
     END.
     EXTENT(propertyNames) = ?.
-    
+
   END METHOD.
 
   METHOD PUBLIC Configuration Build():
-    
+
     RETURN NEW Configuration(configurationDictionary).
   END METHOD.
 
   METHOD PUBLIC ConfigurationBuilder SetBasePath(pathName AS CHARACTER):
-    
+
     basePath = pathName.
-    
+
     RETURN THIS-OBJECT.
   END METHOD.
 

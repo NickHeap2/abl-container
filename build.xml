@@ -28,7 +28,7 @@
 
     <!-- propath set tests -->
     <path id="propath_tests">
-    	  <pathelement path="tools/ablunit"/>
+    	  <pathelement path="tools/ablunit/ABLUnitMods.pl"/>
         <pathelement path="tests"/>
         <pathelement path="src"/>
     </path>

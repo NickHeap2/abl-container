@@ -4,7 +4,7 @@ USING System.Collections.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Configuration.Configuration: 
+CLASS ABLContainer.Configuration.Configuration:
 
   DEFINE VARIABLE configurationDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>" NO-UNDO.
 
@@ -33,14 +33,15 @@ CLASS ABLContainer.Configuration.Configuration:
     DEFINE VARIABLE configValue       AS CHARACTER             NO-UNDO.
     DEFINE VARIABLE configurationEnum AS IDictionaryEnumerator NO-UNDO.
     configurationEnum = configurationDictionary:GetEnumerator().
-    _ENV_VARS:
+    _SECTIONS:
     DO WHILE(configurationEnum:MoveNext()):
       configKey = STRING(configurationEnum:Key).
       configValue = STRING(configurationEnum:Value).
 
+      /*TODO - this should be equals? */
       IF configKey MATCHES sectionName THEN DO:
         configurationSection:Value = configValue.
-        LEAVE _ENV_VARS.
+        LEAVE _SECTIONS.
       END.
     END.
 

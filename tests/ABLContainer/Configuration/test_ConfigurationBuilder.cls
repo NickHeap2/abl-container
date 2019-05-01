@@ -4,8 +4,8 @@ USING OpenEdge.Core.Assert FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Configuration.test_ConfigurationBuilder: 
- 
+CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
+
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
 
@@ -20,7 +20,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
 
   END METHOD.
 
-  @Test(expected="Progress.Lang.AppError"). 
+  @Test(expected="Progress.Lang.AppError").
   METHOD PUBLIC VOID canThrowOnMissingNoneOptionalFile(  ):
 
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
@@ -77,6 +77,43 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
   END METHOD.
 
   @Test.
+  METHOD PUBLIC VOID canAddDockerSecrets(  ):
+
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder:SetBasePath("..")
+                        :AddKeyPerFile("secrets", TRUE).
+
+    DEFINE VARIABLE configuration AS Configuration NO-UNDO.
+    configuration = configurationBuilder:Build().
+    Assert:NotNull(configuration).
+
+    DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
+    configurationEnumerator = configuration:GetChildren().
+    Assert:NotNull(configurationEnumerator).
+
+    DEFINE VARIABLE iChildCount AS INTEGER NO-UNDO.
+    iChildCount = 0.
+    DO WHILE(configurationEnumerator:MoveNext()):
+      iChildCount = iChildCount + 1.
+
+      DEFINE VARIABLE settingKey AS CHARACTER NO-UNDO.
+      DEFINE VARIABLE settingValue AS CHARACTER NO-UNDO.
+      settingKey = configurationEnumerator:Current:Key.
+      settingValue = configurationEnumerator:Current:Value.
+      Assert:NotNullOrEmpty(settingKey).
+      Assert:NotNullOrEmpty(settingValue).
+      MESSAGE settingKey "=" settingValue.
+      Assert:Equals("docker:secret", settingKey).
+      Assert:Equals("secret_value", settingValue).
+    END.
+
+    Assert:Equals(1, iChildCount).
+
+  END METHOD.
+
+  @Test.
   METHOD PUBLIC VOID canAddEnvVarsWithOverride(  ):
 
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
@@ -124,7 +161,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
 
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = configurationBuilder:Build().
-    Assert:NotNull(configuration).      
+    Assert:NotNull(configuration).
 
 /*    DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.*/
 /*    configurationEnumerator = configuration:GetChildren().                                                                      */
@@ -196,14 +233,14 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
     configurationBuilder = NEW ConfigurationBuilder().
     Assert:NotNull(configurationBuilder).
-   
+
     configurationBuilder
       :AddEnvironmentVariables("ArrayTest__").
 
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = configurationBuilder:Build().
     Assert:NotNull(configuration).
-   
+
     DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
     configurationSection = configuration:GetSection("ArrayTest").
     Assert:NotNull(configurationSection).
@@ -224,7 +261,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
       DEFINE VARIABLE childSection0 AS ConfigurationSection NO-UNDO.
       childSection0 = CAST(configurationEnumerator0:Current:Value, ConfigurationSection).
       Assert:NotNull(childSection0).
-            
+
       IF (childSection0:Key = "integerSetting") THEN DO:
         Assert:Equals("0", childSection0:Value).
       END.
@@ -240,11 +277,11 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     DEFINE VARIABLE configurationSection1 AS ConfigurationSection NO-UNDO.
     configurationSection1 = configuration:GetSection("ArrayTest:1").
     Assert:NotNull(configurationSection1).
-        
+
     DEFINE VARIABLE configurationEnumerator1 AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
     configurationEnumerator1 = configurationSection1:GetChildren().
     Assert:NotNull(configurationEnumerator1).
-        
+
     iChildCount = 0.
     DO WHILE(configurationEnumerator1:MoveNext()):
       iChildCount = iChildCount + 1.
@@ -252,7 +289,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
       DEFINE VARIABLE childSection1 AS ConfigurationSection NO-UNDO.
       childSection1 = CAST(configurationEnumerator1:Current:Value, ConfigurationSection).
       Assert:NotNull(childSection1).
-            
+
       IF (childSection1:Key = "integerSetting") THEN DO:
         Assert:Equals("1", childSection1:Value).
       END.

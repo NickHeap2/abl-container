@@ -1,10 +1,11 @@
 USING ABLContainer.Logging.* FROM PROPATH.
+USING OpenEdge.Core.Assert FROM PROPATH.
 USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Logging.test_Log: 
- 
+CLASS ABLContainer.Logging.test_Log:
+
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
 
@@ -29,14 +30,19 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogAnException(  ):
 
+    DEFINE VARIABLE errorLogged AS LOGICAL NO-UNDO.
+
     DO ON ERROR UNDO, LEAVE:
       DEFINE VARIABLE hHandle AS HANDLE NO-UNDO.
       hHandle:ACCEPT-CHANGES().
 
       CATCH ex AS Progress.Lang.Error :
-        Log:Error(ex).        
+        Log:Error(ex).
+        errorLogged = TRUE.
       END CATCH.
     END.
+
+    Assert:IsTrue(errorLogged).
 
   END METHOD.
 
@@ -81,7 +87,7 @@ CLASS ABLContainer.Logging.test_Log:
     Log:Debug("TEST DEBUG", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
 
   END METHOD.
-  
+
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithFourParams(  ):
 
@@ -109,7 +115,7 @@ CLASS ABLContainer.Logging.test_Log:
     Log:Information("TEST INFORMATION", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
 
   END METHOD.
-  
+
   @Test.
   METHOD PUBLIC VOID canLogInformationWithFourParams(  ):
 
