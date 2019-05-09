@@ -78,7 +78,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
     INPUT FROM OS-DIR(directoryName).
     _FILES:
     REPEAT:
-      SET fileName filePath attributeList WITH WIDTH 320.
+      IMPORT fileName filePath attributeList.
       IF (NOT attributeList MATCHES "*F*")
         OR (NOT fileName MATCHES "*__*")
       THEN DO:
