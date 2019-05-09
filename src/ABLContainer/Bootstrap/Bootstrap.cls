@@ -276,10 +276,16 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     connectionStringsEnumerator = ConnectionStrings:GetEnumerator().
     DO WHILE(connectionStringsEnumerator:MoveNext()):
       DEFINE VARIABLE databaseConnectionString AS CHARACTER NO-UNDO.
+      DEFINE VARIABLE redactedDatabaseConnectionString AS CHARACTER NO-UNDO.
 
       databaseConnectionString = connectionStringsEnumerator:Current.
 
-      Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(databaseConnectionString)).
+      DEFINE VARIABLE passwordIndex AS INTEGER NO-UNDO.
+      passwordIndex = LOOKUP("-P", databaseConnectionString, " ") + 1.
+      redactedDatabaseConnectionString = databaseConnectionString.
+      ENTRY(passwordIndex, redactedDatabaseConnectionString, " ") = FILL("*", LENGTH(ENTRY(passwordIndex, redactedDatabaseConnectionString, " "))).
+
+      Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(redactedDatabaseConnectionString)).
       CONNECT VALUE(databaseConnectionString) NO-ERROR.
       IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
         Log:Error("ERROR: Couldn't connect to database!").
