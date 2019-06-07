@@ -4,11 +4,11 @@ USING OpenEdge.Core.Assert FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Configuration.test_Configuration: 
- 
+CLASS ABLContainer.Configuration.test_Configuration:
+
   DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
   DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
- 
+
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
     configurationBuilder = NEW ConfigurationBuilder().

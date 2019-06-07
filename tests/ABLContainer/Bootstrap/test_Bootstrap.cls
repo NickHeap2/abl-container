@@ -5,10 +5,10 @@ USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Bootstrap.test_Bootstrap: 
- 
+CLASS ABLContainer.Bootstrap.test_Bootstrap:
+
   DEFINE VARIABLE previousPropath AS CHARACTER NO-UNDO.
- 
+
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
     previousPropath = PROPATH.
@@ -32,6 +32,24 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
       :AddJsonFile("appsettings.nodb.json", TRUE)
       :AddJsonFile("appsettings.Development.json", TRUE)
       :AddEnvironmentVariables().
+    configuration = configurationBuilder:Build().
+    Assert:NotNull(configuration).
+
+    Bootstrap:SetSettings(configuration).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canSetDatabaseSettings(  ):
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+    DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
+
+    Bootstrap:ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
+
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder
+      :SetBasePath("..")
+      :AddJsonFile("appsettings.json", FALSE).
     configuration = configurationBuilder:Build().
     Assert:NotNull(configuration).
 

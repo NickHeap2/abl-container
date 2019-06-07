@@ -32,6 +32,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     configurationBuilder
       :SetBasePath(".")
       :AddJsonFile("appsettings.json", TRUE)
+      :AddJsonFile("appsettings.override.json", TRUE)
       :AddJsonFile(SUBSTITUTE("appsettings.&1.json", environment), TRUE)
       :AddKeyPerFile(".\secrets", TRUE)
       :AddKeyPerFile("C:\ProgramData\Docker\secrets", TRUE)
@@ -227,9 +228,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         DO WHILE(enrichEnumerator:MoveNext()):
           DEFINE VARIABLE enrichSection AS ConfigurationSection NO-UNDO.
           enrichSection = CAST(enrichEnumerator:Current:Value, ConfigurationSection).
-          /*          MESSAGE SUBSTITUTE("Enrich &1->&2", usingSection:Key, usingSection:Value).*/
+          /*          MESSAGE SUBSTITUTE("Enrich &1->&2", enrichSection:Key, enrichSection:Value).*/
 
-          IF enrichSection:Key = "WithMachineName" THEN DO:
+          IF enrichSection:Value = "WithMachineName" THEN DO:
             keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:MachineName", System.Environment:MachineName)).
           END.
         END. /*_ENRICH*/

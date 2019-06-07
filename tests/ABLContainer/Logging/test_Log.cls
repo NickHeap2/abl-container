@@ -1,22 +1,38 @@
 USING ABLContainer.Logging.* FROM PROPATH.
 USING OpenEdge.Core.Assert FROM PROPATH.
 USING Progress.Lang.*.
+USING Serilog.Events.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Logging.test_Log:
 
+  DEFINE PUBLIC PROPERTY LastLogEvent AS LogEvent NO-UNDO
+  GET.
+  SET.
+
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
 
+    SESSION:ERROR-STACK-TRACE = TRUE.
+
     Log:ClearData().
 
+    TestLogger:CreateLogger(THIS-OBJECT).
+    DELETE OBJECT LastLogEvent NO-ERROR.
+
+  END METHOD.
+
+  METHOD PUBLIC VOID OnLog_Handler (logEvent AS LogEvent):
+    LastLogEvent = LogEvent.
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformation(  ):
 
     Log:Information("TEST INFORMATION").
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION", LastLogEvent:MessageTemplate:Text).
 
   END METHOD.
 
@@ -24,6 +40,26 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID canLogAnError(  ):
 
     Log:Error("TEST ERROR").
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST ERROR", LastLogEvent:MessageTemplate:Text).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogDebugInfo(  ):
+
+    Log:Debug("TEST DEBUG").
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST DEBUG", LastLogEvent:MessageTemplate:Text).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogWarning(  ):
+
+    Log:Warning("TEST WARNING").
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST WARNING", LastLogEvent:MessageTemplate:Text).
 
   END METHOD.
 
@@ -43,83 +79,198 @@ CLASS ABLContainer.Logging.test_Log:
     END.
 
     Assert:IsTrue(errorLogged).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("ERROR: ~{ErrorMessage~}~n~{ErrorStack~}", LastLogEvent:MessageTemplate:Text).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogAnExceptionWithoutStackTrace(  ):
+
+    DEFINE VARIABLE errorLogged AS LOGICAL NO-UNDO.
+
+    DO ON ERROR UNDO, LEAVE:
+      DEFINE VARIABLE hHandle AS HANDLE NO-UNDO.
+      hHandle:ACCEPT-CHANGES().
+
+      CATCH ex AS Progress.Lang.Error :
+        SESSION:ERROR-STACK-TRACE = FALSE.
+        Log:Error(ex).
+        errorLogged = TRUE.
+      END CATCH.
+    END.
+
+    Assert:IsTrue(errorLogged).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("ERROR: ~{ErrorMessage~}", LastLogEvent:MessageTemplate:Text).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogAnErrorWithAParam(  ):
 
-    Log:Error("TEST DEBUG", BOX("PARAM1")).
+    Log:Error("Error ~{Param1~}", BOX("PARAM1")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogAnErrorWithTwoParams(  ):
 
-    Log:Error("TEST DEBUG", BOX("PARAM1"), BOX("PARAM2")).
-
-  END METHOD.
-
-  @Test.
-  METHOD PUBLIC VOID canLogDebugInfo(  ):
-
-    Log:Debug("TEST DEBUG").
+    Log:Error("Error ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithAParam(  ):
 
-    Log:Debug("TEST DEBUG", BOX("PARAM1")).
+    Log:Debug("Debug ~{Param1~}", BOX("PARAM1")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithTwoParams(  ):
 
-    Log:Debug("TEST DEBUG", BOX("PARAM1"), BOX("PARAM2")).
+    Log:Debug("Debug ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithThreeParams(  ):
 
-    Log:Debug("TEST DEBUG", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+    Log:Debug("Debug ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithFourParams(  ):
 
-    Log:Debug("TEST DEBUG", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4")).
+    Log:Debug("Debug ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithAParam(  ):
 
-    Log:Information("TEST INFORMATION", BOX("PARAM1")).
+    Log:Information("Information ~{Param1~}", BOX("PARAM1")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithTwoParams(  ):
 
-    Log:Information("TEST INFORMATION", BOX("PARAM1"), BOX("PARAM2")).
+    Log:Information("Information ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithThreeParams(  ):
 
-    Log:Information("TEST INFORMATION", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithFourParams(  ):
 
-    Log:Information("TEST INFORMATION", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4")).
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogInformationWithFiveParams(  ):
+
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~} ~{Param5~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4"), BOX("PARAM5")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogInformationWithSixParams(  ):
+
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~} ~{Param5~} ~{Param6~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4"), BOX("PARAM5"), BOX("PARAM6")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogAWarningWithAParam(  ):
+
+    Log:Warning("Warning ~{Param1~}", BOX("PARAM1")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogAWarningWithTwoParams(  ):
+
+    Log:Warning("Warning ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogWarningAtWithAParam(  ):
+    DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    eventTime = ADD-INTERVAL(NOW, -3, "hours").
+
+    Log:WarningAt(eventTime, "WarningAt ~{Param1~}", BOX("PARAM1")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogWarningAtWithTwoParams(  ):
+    DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    eventTime = ADD-INTERVAL(NOW, -3, "hours").
+
+    Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogWarningAtWithThreeParams(  ):
+    DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    eventTime = ADD-INTERVAL(NOW, -3, "hours").
+
+    Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogInformationAtWithAParam(  ):
+    DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    eventTime = ADD-INTERVAL(NOW, -3, "hours").
+
+    Log:InformationAt(eventTime, "InformationAt ~{Param1~}", BOX("PARAM1")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogInformationAtWithTwoParams(  ):
+    DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    eventTime = ADD-INTERVAL(NOW, -3, "hours").
+
+    Log:InformationAt(eventTime, "InformationAt ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogInformationAtWithThreeParams(  ):
+    DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    eventTime = ADD-INTERVAL(NOW, -3, "hours").
+
+    Log:InformationAt(eventTime, "InformationAt ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canCheckDebugIsEnabled(  ):
+    DEFINE VARIABLE isEnabled AS LOGICAL NO-UNDO.
+    isEnabled = Log:IsDebugEnabled().
+    Assert:IsTrue(isEnabled).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canCheckVerboseIsDisabled(  ):
+    DEFINE VARIABLE isEnabled AS LOGICAL NO-UNDO.
+    isEnabled = Log:IsVerboseEnabled().
+    Assert:IsFalse(isEnabled).
 
   END METHOD.
 

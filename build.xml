@@ -155,8 +155,8 @@
         <coveragereport reportExecutable="tools/packages/ReportGenerator.3.1.2/tools/ReportGenerator.exe"
                         coverageFile="build/oe11/cobertura-coverage.xml"
                         destinationDir="build/reports" />
-        <!-- <exec executable="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" spawn="yes" failifexecutionfails="false">
+        <exec executable="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" spawn="yes" failifexecutionfails="false">
             <arg value="build/reports/index.htm" />
-        </exec> -->
+        </exec>
     </target>
 </project>
