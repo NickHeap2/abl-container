@@ -26,6 +26,10 @@ CLASS ABLContainer.Logging.Log:
     RETURN Serilog.Log:IsEnabled(LogEventLevel:Verbose).
   END METHOD.
 
+  METHOD STATIC PUBLIC VOID CloseAndFlush ():
+    Serilog.Log:CloseAndFlush().
+  END METHOD.
+
   METHOD STATIC VOID Write (eventTime AS DATETIME, level AS LogEventLevel, exception AS Exception, messageTemplateText AS CHARACTER, properties AS System.Array):
 
     DEFINE VARIABLE eventDateTimeOffset AS DateTimeOffset NO-UNDO.

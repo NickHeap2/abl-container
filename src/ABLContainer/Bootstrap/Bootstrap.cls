@@ -280,11 +280,15 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       DEFINE VARIABLE redactedDatabaseConnectionString AS CHARACTER NO-UNDO.
 
       databaseConnectionString = connectionStringsEnumerator:Current.
+      redactedDatabaseConnectionString = databaseConnectionString.
 
       DEFINE VARIABLE passwordIndex AS INTEGER NO-UNDO.
-      passwordIndex = LOOKUP("-P", databaseConnectionString, " ") + 1.
-      redactedDatabaseConnectionString = databaseConnectionString.
-      ENTRY(passwordIndex, redactedDatabaseConnectionString, " ") = FILL("*", LENGTH(ENTRY(passwordIndex, redactedDatabaseConnectionString, " "))).
+      passwordIndex = LOOKUP("-P", databaseConnectionString, " ").
+      IF passwordIndex <> 0 THEN DO:
+        passwordIndex = passwordIndex + 1.
+        redactedDatabaseConnectionString = databaseConnectionString.
+        ENTRY(passwordIndex, redactedDatabaseConnectionString, " ") = FILL("*", LENGTH(ENTRY(passwordIndex, redactedDatabaseConnectionString, " "))).
+      END.
 
       Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(redactedDatabaseConnectionString)).
       CONNECT VALUE(databaseConnectionString) NO-ERROR.
