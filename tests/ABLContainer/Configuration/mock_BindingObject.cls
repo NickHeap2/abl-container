@@ -2,7 +2,7 @@ USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Configuration.mock_BindingObject INHERITS System.Object: 
+CLASS ABLContainer.Configuration.mock_BindingObject INHERITS System.Object:
 
   DEFINE PUBLIC PROPERTY IntegerSetting AS INTEGER NO-UNDO
     GET.
@@ -15,5 +15,20 @@ CLASS ABLContainer.Configuration.mock_BindingObject INHERITS System.Object:
   DEFINE PUBLIC PROPERTY LogicalSetting AS LOGICAL NO-UNDO
     GET.
     SET.
-  
+
+  DEFINE PUBLIC PROPERTY SpaceValues AS "System.Collections.Generic.List<CHARACTER>" NO-UNDO
+    GET.
+    SET.
+
+  /*------------------------------------------------------------------------------
+   Purpose:
+   Notes:
+  ------------------------------------------------------------------------------*/
+
+  CONSTRUCTOR PUBLIC mock_BindingObject (  ):
+
+    SpaceValues = NEW "System.Collections.Generic.List<CHARACTER>"().
+
+  END CONSTRUCTOR.
+
 END CLASS.

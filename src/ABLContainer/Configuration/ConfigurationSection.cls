@@ -24,11 +24,68 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
     configurationObject = configuration.
   END CONSTRUCTOR.
 
+  METHOD PUBLIC VOID Bind(characterList AS "System.Collections.Generic.List<CHARACTER>"):
+
+    DEFINE VARIABLE sectionEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+    sectionEnumerator = THIS-OBJECT:GetChildren().
+    _CHILDREN:
+    DO WHILE(sectionEnumerator:MoveNext()):
+      DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
+      configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
+
+      /* is this a value node? */
+      IF configurationSection:Value <> ? THEN DO:
+        characterList:Add(configurationSection:Value) NO-ERROR.
+        IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+          UNDO, THROW NEW AppError(SUBSTITUTE("ERROR: [&1]", ERROR-STATUS:GET-MESSAGE(1))).
+        END.
+      END.
+    END.
+
+  END METHOD.
+
+  METHOD PUBLIC LOGICAL Exists(  ):
+
+    IF (THIS-OBJECT:VALUE <> ?
+      AND THIS-OBJECT:VALUE <> "")
+      /*TODO Need to check for children*/
+    THEN DO:
+      RETURN TRUE.
+    END.
+
+    RETURN FALSE.
+
+  END METHOD.
+
+  METHOD PUBLIC CHARACTER EXTENT GetArray():
+    DEFINE VARIABLE characterArray AS CHARACTER EXTENT NO-UNDO.
+    DEFINE VARIABLE characterList AS "System.Collections.Generic.List<CHARACTER>" NO-UNDO.
+    characterList = NEW "System.Collections.Generic.List<CHARACTER>"().
+
+    DEFINE VARIABLE sectionEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+    sectionEnumerator = THIS-OBJECT:GetChildren().
+    _CHILDREN:
+    DO WHILE(sectionEnumerator:MoveNext()):
+      DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
+      configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
+
+      /* is this a value node? */
+      IF configurationSection:Value <> ? THEN DO:
+        characterList:Add(configurationSection:Value) NO-ERROR.
+      END.
+    END.
+    EXTENT(characterArray) = ?.
+    EXTENT(characterArray) = characterList:Count.
+    characterArray = characterList:ToArray().
+
+    RETURN characterArray.
+  END METHOD.
+
   METHOD PUBLIC VOID Bind(bindObject AS System.Object):
 
     DEFINE VARIABLE sectionEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
     sectionEnumerator = THIS-OBJECT:GetChildren().
-    _SERILOG:
+    _CHILDREN:
     DO WHILE(sectionEnumerator:MoveNext()):
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
       configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
