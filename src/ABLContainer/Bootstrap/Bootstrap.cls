@@ -2,10 +2,14 @@ USING ABLContainer.Logging.* FROM PROPATH.
 USING ABLContainer.Bootstrap.* FROM PROPATH.
 USING ABLContainer.Configuration.* FROM PROPATH.
 USING Progress.Lang.*.
+USING Progress.Util.* FROM ASSEMBLY.
 USING Serilog.* FROM ASSEMBLY.
+USING Serilog.Core.* FROM ASSEMBLY.
+USING Serilog.Context.* FROM ASSEMBLY.
 USING Serilog.Log.* FROM ASSEMBLY.
 USING Serilog.Sinks.* FROM ASSEMBLY.
 USING System.Collections.Generic.* FROM ASSEMBLY.
+USING Serilog.Core.ILogEventEnricher FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -130,6 +134,8 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     DEFINE VARIABLE keyvaluepairs AS "IList<System.Collections.Generic.KeyValuePair<character, character>>" NO-UNDO.
     keyvaluepairs = NEW "List<System.Collections.Generic.KeyValuePair<character, character>>"().
 
+    DEFINE VARIABLE addLogContext AS LOGICAL NO-UNDO.
+
     DEFINE VARIABLE serilogEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
     serilogEnumerator = serilogSection:GetChildren().
     _SERILOG:
@@ -186,14 +192,13 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           DEFINE VARIABLE writeToSection AS ConfigurationSection NO-UNDO.
           writeToSection = CAST(writeToEnumerator:Current:Value, ConfigurationSection).
 
-          DEFINE VARIABLE writeToName              AS CHARACTER                                                                    NO-UNDO.
-
           DEFINE VARIABLE nameSection AS ConfigurationSection NO-UNDO.
           nameSection = writeToSection:GetSection("Name").
           IF nameSection:VALUE = ? THEN DO:
             NEXT _WRITETO.
           END.
 
+          DEFINE VARIABLE writeToName AS CHARACTER NO-UNDO.
           writeToName = nameSection:Value.
           keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<System.String, System.String>"("write-to:" + writeToName, "")).
 
@@ -233,6 +238,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           IF enrichSection:Value = "WithMachineName" THEN DO:
             keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:MachineName", System.Environment:MachineName)).
           END.
+          ELSE IF enrichSection:Value = "FromLogContext" THEN DO:
+            addLogContext = TRUE.
+          END.
         END. /*_ENRICH*/
       END.
       ELSE IF configurationSection:Key = "Properties" THEN DO:
@@ -251,6 +259,10 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     END. /*SERILOG*/
 
     loggerConfiguration:ReadFrom:KeyValuePairs(keyvaluepairs).
+    IF addLogContext THEN DO:
+      loggerConfiguration:Enrich:FromLogContext().
+    END.
+
     Serilog.Log:Logger = loggerConfiguration:CreateLogger().
 
     Serilog.Log:Logger:Information("Serilog has been configured.").
@@ -369,6 +381,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
             END.
             ELSE IF dbSettingSection:Key = ("password") THEN DO:
               databaseConnectionString = databaseConnectionString + " -P " + dbSettingSection:Value.
+            END.
+            ELSE IF dbSettingSection:Key = ("other") THEN DO:
+              databaseConnectionString = databaseConnectionString + " " + dbSettingSection:Value.
             END.
           END. /*_DB_SETTING*/
 

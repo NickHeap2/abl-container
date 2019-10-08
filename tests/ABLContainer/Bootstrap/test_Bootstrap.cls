@@ -26,6 +26,8 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
     DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
 
+    Bootstrap:ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
+
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
       :SetBasePath("..")
@@ -36,6 +38,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     Assert:NotNull(configuration).
 
     Bootstrap:SetSettings(configuration).
+    Assert:Equals(Bootstrap:ConnectionStrings:Count, 0).
 
   END METHOD.
 
@@ -54,6 +57,15 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     Assert:NotNull(configuration).
 
     Bootstrap:SetSettings(configuration).
+
+    Assert:Equals(Bootstrap:ConnectionStrings:Count, 2).
+
+    DEFINE VARIABLE connectionString AS CHARACTER NO-UNDO.
+    connectionString = Bootstrap:ConnectionStrings:Item[0].
+    Assert:Equals("-db database1 -H localhost -S 10660 -ld database1 -U username -P password", connectionString).
+
+    connectionString = Bootstrap:ConnectionStrings:Item[1].
+    Assert:Equals("-db database2 -H localhost -S 10661 -ld database2 -U username -P password -B 1000 -Mm 3000", connectionString).
 
   END METHOD.
 

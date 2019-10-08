@@ -30,6 +30,18 @@ CLASS ABLContainer.Logging.Log:
     Serilog.Log:CloseAndFlush().
   END METHOD.
 
+  METHOD STATIC PUBLIC System.IDisposable PushProperty(contextName AS CHARACTER, contextValue AS System.Object):
+    RETURN Serilog.Context.LogContext:PushProperty(contextName, contextValue, FALSE).
+  END METHOD.
+
+  METHOD STATIC PUBLIC System.IDisposable PushProperty(contextName AS CHARACTER, contextValue AS System.Object, destructureObjects AS LOGICAL):
+    RETURN Serilog.Context.LogContext:PushProperty(contextName, contextValue, destructureObjects).
+  END METHOD.
+
+  METHOD STATIC PUBLIC VOID ResetContext():
+    Serilog.Context.LogContext:Reset().
+  END METHOD.
+
   METHOD STATIC VOID Write (eventTime AS DATETIME, level AS LogEventLevel, exception AS Exception, messageTemplateText AS CHARACTER, properties AS System.Array):
 
     DEFINE VARIABLE eventDateTimeOffset AS DateTimeOffset NO-UNDO.

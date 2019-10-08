@@ -18,6 +18,7 @@ CLASS ABLContainer.Logging.TestLogger:
     DEFINE VARIABLE loggerConfiguration AS LoggerConfiguration NO-UNDO.
     loggerConfiguration = NEW LoggerConfiguration().
     loggerConfiguration:MinimumLevel:Debug().
+    loggerConfiguration:Enrich:FromLogContext().
 
     DEFINE VARIABLE loggerSinkConfiguration AS LoggerSinkConfiguration NO-UNDO.
     loggerSinkConfiguration = loggerConfiguration:WriteTo.

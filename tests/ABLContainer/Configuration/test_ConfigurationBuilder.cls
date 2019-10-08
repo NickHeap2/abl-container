@@ -104,7 +104,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
       settingValue = configurationEnumerator:Current:Value.
       Assert:NotNullOrEmpty(settingKey).
       Assert:NotNullOrEmpty(settingValue).
-      MESSAGE settingKey "=" settingValue.
+/*      MESSAGE settingKey "=" settingValue.*/
       Assert:Equals("docker:secret", settingKey).
       Assert:Equals("secret_value", settingValue).
     END.

@@ -11,7 +11,14 @@ SESSION:ERROR-STACK-TRACE=YES.
 RUN ClearPropath.
 DEFINE VARIABLE propathEnvVar AS CHARACTER NO-UNDO.
 DEFINE VARIABLE environmentEnvVar AS CHARACTER NO-UNDO.
+
 propathEnvVar = OS-GETENV("BOOTSTRAP_PROPATH").
+IF propathEnvVar = ""
+  OR propathEnvVar = ?
+THEN DO:
+  propathEnvVar = "ablcontainer/ABLContainer.pl".
+END.
+
 environmentEnvVar = OS-GETENV("OPENEDGE_ENVIRONMENT").
 IF environmentEnvVar = ""
   OR environmentEnvVar = ?

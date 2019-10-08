@@ -274,4 +274,112 @@ CLASS ABLContainer.Logging.test_Log:
 
   END METHOD.
 
+  @Test.
+  METHOD PUBLIC VOID canPushProperty(  ):
+
+    DEFINE VARIABLE testProperty AS System.IDisposable NO-UNDO.
+
+    testProperty = Log:PushProperty("TestName", BOX("TestValue")).
+    Log:Information("TEST INFORMATION").
+    testProperty:Dispose().
+
+    /* check message */
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION", LastLogEvent:MessageTemplate:Text).
+
+    /* check properties */
+    Assert:Equals(1, LastLogEvent:Properties:Count).
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("TestName", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TestValue~"", logEventPropertyValue:ToString()).
+
+
+    Log:Information("TEST INFORMATION").
+    /* check message */
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION", LastLogEvent:MessageTemplate:Text).
+
+    /* check properties */
+    Assert:Equals(0, LastLogEvent:Properties:Count).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canPushTwoProperties(  ):
+
+    DEFINE VARIABLE testProperty1 AS System.IDisposable NO-UNDO.
+    DEFINE VARIABLE testProperty2 AS System.IDisposable NO-UNDO.
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+
+    testProperty1 = Log:PushProperty("TestName1", BOX("TestValue1")).
+    Log:Information("TEST INFORMATION 1").
+    /* check message */
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION 1", LastLogEvent:MessageTemplate:Text).
+    Assert:Equals(1, LastLogEvent:Properties:Count).
+    success = LastLogEvent:Properties:TryGetValue("TestName1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).
+
+    testProperty2 = Log:PushProperty("TestName2", BOX("TestValue2")).
+    Log:Information("TEST INFORMATION 2").
+    /* check message */
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION 2", LastLogEvent:MessageTemplate:Text).
+    Assert:Equals(2, LastLogEvent:Properties:Count).
+    success = LastLogEvent:Properties:TryGetValue("TestName1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).
+    success = LastLogEvent:Properties:TryGetValue("TestName2", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TestValue2~"", logEventPropertyValue:ToString()).
+
+    testProperty2:Dispose().
+
+    Log:Information("TEST INFORMATION 3").
+    /* check message */
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION 3", LastLogEvent:MessageTemplate:Text).
+    Assert:Equals(1, LastLogEvent:Properties:Count).
+    success = LastLogEvent:Properties:TryGetValue("TestName1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).
+
+    testProperty1:Dispose().
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canResetProperties(  ):
+    DEFINE VARIABLE testProperty1 AS System.IDisposable NO-UNDO.
+    DEFINE VARIABLE testProperty2 AS System.IDisposable NO-UNDO.
+
+    testProperty1 = Log:PushProperty("TestName1", BOX("TestValue1")).
+    testProperty2 = Log:PushProperty("TestName2", BOX("TestValue2")).
+
+    Log:Information("TEST INFORMATION 1").
+    /* check message */
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION 1", LastLogEvent:MessageTemplate:Text).
+    Assert:Equals(2, LastLogEvent:Properties:Count).
+
+    Log:ResetContext().
+
+    Log:Information("TEST INFORMATION 2").
+    /* check message */
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION 2", LastLogEvent:MessageTemplate:Text).
+    Assert:Equals(0, LastLogEvent:Properties:Count).
+
+    testProperty1:Dispose().
+    testProperty2:Dispose().
+
+  END METHOD.
+
+
 END CLASS.
