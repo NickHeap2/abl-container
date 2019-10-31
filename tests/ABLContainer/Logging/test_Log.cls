@@ -278,11 +278,13 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogInformationAtWithAParam(  ):
     DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    DEFINE VARIABLE lastLogEventEventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
     Log:InformationAt(eventTime, "InformationAt ~{Param1~}", BOX("PARAM1")).
     Assert:NotNull(LastLogEvent, "LastLogEvent").
-    Assert:Equals(SUBSTRING(STRING(eventTime), 1, 10), SUBSTRING(STRING(LastLogEvent:Timestamp), 1, 10)).
+    lastLogEventEventTime = LastLogEvent:Timestamp:DateTime.
+    Assert:Equals(STRING(eventTime, "99/99/9999 HH:MM:SS.SSS"), STRING(lastLogEventEventTime, "99/99/9999 HH:MM:SS.SSS")).
     Assert:Equals("InformationAt ~{Param1~}", LastLogEvent:MessageTemplate:Text).
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
