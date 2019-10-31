@@ -282,7 +282,7 @@ CLASS ABLContainer.Logging.test_Log:
 
     Log:InformationAt(eventTime, "InformationAt ~{Param1~}", BOX("PARAM1")).
     Assert:NotNull(LastLogEvent, "LastLogEvent").
-    Assert:Equals(SUBSTRING(STRING(eventTime), 1, 19), SUBSTRING(STRING(LastLogEvent:Timestamp), 1, 20)).
+    Assert:Equals(SUBSTRING(STRING(eventTime), 1, 10), SUBSTRING(STRING(LastLogEvent:Timestamp), 1, 10)).
     Assert:Equals("InformationAt ~{Param1~}", LastLogEvent:MessageTemplate:Text).
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
