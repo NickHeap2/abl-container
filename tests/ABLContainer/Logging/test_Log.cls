@@ -1,7 +1,10 @@
+USING ABLContainer.Bootstrap.* FROM PROPATH.
+USING ABLContainer.Configuration.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
 USING OpenEdge.Core.Assert FROM PROPATH.
 USING Progress.Lang.*.
 USING Serilog.Events.* FROM ASSEMBLY.
+USING System.Environment.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -17,6 +20,7 @@ CLASS ABLContainer.Logging.test_Log:
     SESSION:ERROR-STACK-TRACE = TRUE.
 
     Log:ClearData().
+/*    System.Environment:SetEnvironmentVariable(variable, value)*/
 
     TestLogger:CreateLogger(THIS-OBJECT).
     DELETE OBJECT LastLogEvent NO-ERROR.
@@ -110,6 +114,14 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID canLogAnErrorWithAParam(  ):
 
     Log:Error("Error ~{Param1~}", BOX("PARAM1")).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("Error ~{Param1~}", LastLogEvent:MessageTemplate:Text).
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
 
@@ -117,6 +129,17 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID canLogAnErrorWithTwoParams(  ):
 
     Log:Error("Error ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("Error ~{Param1~} ~{Param2~}", LastLogEvent:MessageTemplate:Text).
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
+    success = LastLogEvent:Properties:TryGetValue("Param2", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM2~"", logEventPropertyValue:ToString()).
 
   END METHOD.
 
@@ -124,6 +147,13 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID canLogDebugInfoWithAParam(  ):
 
     Log:Debug("Debug ~{Param1~}", BOX("PARAM1")).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("Debug ~{Param1~}", LastLogEvent:MessageTemplate:Text).
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
 
@@ -152,6 +182,13 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID canLogInformationWithAParam(  ):
 
     Log:Information("Information ~{Param1~}", BOX("PARAM1")).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("Information ~{Param1~}", LastLogEvent:MessageTemplate:Text).
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
 
@@ -194,6 +231,13 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID canLogAWarningWithAParam(  ):
 
     Log:Warning("Warning ~{Param1~}", BOX("PARAM1")).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("Warning ~{Param1~}", LastLogEvent:MessageTemplate:Text).
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
 
@@ -237,6 +281,14 @@ CLASS ABLContainer.Logging.test_Log:
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
     Log:InformationAt(eventTime, "InformationAt ~{Param1~}", BOX("PARAM1")).
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals(SUBSTRING(STRING(eventTime), 1, 19), SUBSTRING(STRING(LastLogEvent:Timestamp), 1, 20)).
+    Assert:Equals("InformationAt ~{Param1~}", LastLogEvent:MessageTemplate:Text).
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
 
@@ -271,6 +323,120 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE isEnabled AS LOGICAL NO-UNDO.
     isEnabled = Log:IsVerboseEnabled().
     Assert:IsFalse(isEnabled).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogMachineNameAndProcessIdProperties(  ):
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+    DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
+
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder
+      :SetBasePath("..")
+      :AddJsonFile("appsettings.enrichers.json", TRUE)
+      :AddEnvironmentVariables().
+    configuration = configurationBuilder:Build().
+    Assert:NotNull(configuration).
+
+    Bootstrap:SetSettings(configuration).
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+
+    Log:Information("TEST INFORMATION").
+    /* check message */
+    Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION", TestFormatter:LastLogEvent:MessageTemplate:Text).
+
+    /* check properties */
+    Assert:Equals(12, TestFormatter:LastLogEvent:Properties:Count).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("MachineName", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:NotEqual(logEventPropertyValue:ToString(), "~"~"").
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("ProcessId", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:NotEqual(logEventPropertyValue:ToString(), "~"~"").
+
+  END.
+
+  @Test.
+  METHOD PUBLIC VOID canLogSwarmProperties(  ):
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+    DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
+
+    System.Environment:SetEnvironmentVariable("SWARM_NODE_ID", "NODE_ID").
+    System.Environment:SetEnvironmentVariable("SWARM_NODE_HOSTNAME", "NODE_HOSTNAME").
+    System.Environment:SetEnvironmentVariable("SWARM_SERVICE_ID", "SERVICE_ID").
+    System.Environment:SetEnvironmentVariable("SWARM_SERVICE_NAME", "SERVICE_NAME").
+    System.Environment:SetEnvironmentVariable("SWARM_SERVICE_LABELS", "SERVICE_LABELS").
+    System.Environment:SetEnvironmentVariable("SWARM_TASK_ID", "TASK_ID").
+    System.Environment:SetEnvironmentVariable("SWARM_TASK_NAME", "TASK_NAME").
+    System.Environment:SetEnvironmentVariable("SWARM_TASK_SLOT", "TASK_SLOT").
+
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder
+      :SetBasePath("..")
+      :AddJsonFile("appsettings.enrichers.json", TRUE)
+      :AddEnvironmentVariables().
+    configuration = configurationBuilder:Build().
+    Assert:NotNull(configuration).
+
+    Bootstrap:SetSettings(configuration).
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+
+    Log:Information("TEST INFORMATION").
+    /* check message */
+    Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
+    Assert:Equals("TEST INFORMATION", TestFormatter:LastLogEvent:MessageTemplate:Text).
+
+    /* check properties */
+    Assert:Equals(12, TestFormatter:LastLogEvent:Properties:Count).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmNodeID", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"NODE_ID~"", logEventPropertyValue:ToString()).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmNodeHostname", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"NODE_HOSTNAME~"", logEventPropertyValue:ToString()).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmServiceID", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"SERVICE_ID~"", logEventPropertyValue:ToString()).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmServiceName", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"SERVICE_NAME~"", logEventPropertyValue:ToString()).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmServiceLabels", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"SERVICE_LABELS~"", logEventPropertyValue:ToString()).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmTaskID", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TASK_ID~"", logEventPropertyValue:ToString()).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmTaskSlot", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TASK_SLOT~"", logEventPropertyValue:ToString()).
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmTaskName", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"TASK_NAME~"", logEventPropertyValue:ToString()).
+
+/*    Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).*/
+
+/*    DEFINE VARIABLE keyEnumerator AS "System.Collections.Generic.IEnumerator<CHARACTER>" NO-UNDO.*/
+/*    keyEnumerator = TestFormatter:LastLogEvent:Properties:Keys:GetEnumerator().                  */
+/*    Assert:NotNull(keyEnumerator).                                                               */
+/*    DO WHILE keyEnumerator:MoveNext():                                                           */
+/*      MESSAGE keyEnumerator:CURRENT.                                                             */
+/*    END.                                                                                         */
 
   END METHOD.
 
@@ -381,5 +547,16 @@ CLASS ABLContainer.Logging.test_Log:
 
   END METHOD.
 
+  @TearDown.
+  METHOD PUBLIC VOID tearDown():
+    System.Environment:SetEnvironmentVariable("SWARM_NODE_ID", "").
+    System.Environment:SetEnvironmentVariable("SWARM_NODE_HOSTNAME", "").
+    System.Environment:SetEnvironmentVariable("SWARM_SERVICE_ID", "").
+    System.Environment:SetEnvironmentVariable("SWARM_SERVICE_NAME", "").
+    System.Environment:SetEnvironmentVariable("SWARM_SERVICE_LABELS", "").
+    System.Environment:SetEnvironmentVariable("SWARM_TASK_ID", "").
+    System.Environment:SetEnvironmentVariable("SWARM_TASK_NAME", "").
+    System.Environment:SetEnvironmentVariable("SWARM_TASK_SLOT", "").
+  END METHOD.
 
 END CLASS.

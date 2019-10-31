@@ -180,7 +180,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     Assert:NotNull(configurationSection).
 
     configurationSection = configuration:GetSection("Serilog:WriteTo:0:Name").
-    Assert:Equals("Console", configurationSection:Value).
+    Assert:Equals("Testing", configurationSection:Value).
 
     configurationSection = configuration:GetSection("Serilog:WriteTo:1:Name").
     Assert:Equals("Elasticsearch", configurationSection:Value).
