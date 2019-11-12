@@ -3,6 +3,7 @@ USING ABLContainer.Configuration.* FROM PROPATH.
 USING ABLContainer.DockerSwarm.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
 USING Serilog.* FROM ASSEMBLY.
+USING Serilog.Core.* FROM ASSEMBLY.
 USING Serilog.Events.* FROM ASSEMBLY.
 USING Serilog.Formatting.* FROM ASSEMBLY.
 USING System.Collections.Generic.* FROM ASSEMBLY.
@@ -125,6 +126,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
   METHOD PUBLIC STATIC VOID SetSeriLogSettings(configuration AS Configuration):
     DEFINE VARIABLE addTestingLogger AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE addPerformanceLogging AS LOGICAL NO-UNDO.
 
     DEFINE VARIABLE serilogSection AS ConfigurationSection NO-UNDO.
     serilogSection = configuration:GetSection("SeriLog").
@@ -254,6 +256,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           ELSE IF enrichSection:Value = "FromLogContext" THEN DO:
             addLogContext = TRUE.
           END.
+          ELSE IF enrichSection:Value = "WithPerformanceCounts" THEN DO:
+            addPerformanceLogging = TRUE.
+          END.
           ELSE IF enrichSection:Value = "WithSwarmNodeID" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmNodeID", dockerSwarmDetails:Node:ID, FALSE).*/
             keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmNodeID", dockerSwarmDetails:Node:ID)).
@@ -317,6 +322,14 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       DEFINE VARIABLE textFormatter AS ITextFormatter NO-UNDO.
       textFormatter = DYNAMIC-INVOKE("ABLContainer.Logging.TestFormatter", "GetFormatter").
       loggerConfiguration = Serilog.ConsoleLoggerConfigurationExtensions:Console(loggerConfiguration:WriteTo, textFormatter, LogEventLevel:Debug, ?, ?).
+    END.
+
+    /* add performance context to logs */
+    IF addPerformanceLogging THEN DO:
+      DEFINE VARIABLE eventLogEnrichers AS ILogEventEnricher EXTENT 1 NO-UNDO.
+      eventLogEnrichers[1] = NEW PerformanceLogger().
+
+      loggerConfiguration:Enrich:With(eventLogEnrichers).
     END.
 
     Serilog.Log:Logger = loggerConfiguration:CreateLogger().

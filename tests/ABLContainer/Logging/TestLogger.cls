@@ -14,7 +14,7 @@ BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Logging.TestLogger:
 
-  METHOD STATIC VOID CreateLogger(obj AS ABLContainer.Logging.test_Log):
+  METHOD STATIC VOID CreateLogger(obj AS ILogHandler):
     DEFINE VARIABLE loggerConfiguration AS LoggerConfiguration NO-UNDO.
     loggerConfiguration = NEW LoggerConfiguration().
     loggerConfiguration:MinimumLevel:Debug().

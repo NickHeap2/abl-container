@@ -8,7 +8,9 @@ USING System.Environment.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Logging.test_Log:
+CLASS ABLContainer.Logging.test_Log IMPLEMENTS ILogHandler:
+
+  DEFINE VARIABLE previousPropath AS CHARACTER NO-UNDO.
 
   DEFINE PUBLIC PROPERTY LastLogEvent AS LogEvent NO-UNDO
   GET.
@@ -18,6 +20,8 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID setUp(  ):
 
     SESSION:ERROR-STACK-TRACE = TRUE.
+
+    previousPropath = PROPATH.
 
     Log:ClearData().
 /*    System.Environment:SetEnvironmentVariable(variable, value)*/
@@ -551,6 +555,8 @@ CLASS ABLContainer.Logging.test_Log:
 
   @TearDown.
   METHOD PUBLIC VOID tearDown():
+    PROPATH = previousPropath.
+
     System.Environment:SetEnvironmentVariable("SWARM_NODE_ID", "").
     System.Environment:SetEnvironmentVariable("SWARM_NODE_HOSTNAME", "").
     System.Environment:SetEnvironmentVariable("SWARM_SERVICE_ID", "").
