@@ -105,7 +105,8 @@ CLASS ABLContainer.Performance.PerformanceCounts:
       performanceCountsInstance = NEW PerformanceCounts().
     END.
 
-    RETURN System.Math:Round(performanceCountsInstance:MemoryPerformanceCounter:NextValue() / 1024 / 1024, 2).
+    RETURN performanceCountsInstance:MemoryPerformanceCounter:NextValue().
+/*    RETURN System.Math:Round(performanceCountsInstance:MemoryPerformanceCounter:NextValue() / 1024 / 1024, 2).*/
 
   END METHOD.
 

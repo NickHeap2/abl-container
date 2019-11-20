@@ -28,6 +28,14 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     GET.
     SET.
 
+  DEFINE PUBLIC STATIC PROPERTY DatabaseRetryMaxSeconds AS INTEGER NO-UNDO
+    GET.
+    SET.
+
+  DEFINE PUBLIC STATIC PROPERTY DatabaseRetryMaxAttempts AS INTEGER NO-UNDO
+    GET.
+    SET.
+
   METHOD PUBLIC STATIC Configuration BuildConfiguration(environment AS CHARACTER):
 
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
@@ -59,6 +67,8 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   METHOD PUBLIC STATIC VOID Start(environment AS CHARACTER):
     ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
     VersionNumber = "1.0.1".
+    DatabaseRetryMaxSeconds = 60.
+    DatabaseRetryMaxAttempts = 0.
 
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = BuildConfiguration(environment).
@@ -73,47 +83,40 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     Log:Information("ProPath: ~{ProPath~}", BOX(PROPATH)).
     Log:Information("UseProfiler: ~{UseProfiler~}", BOX(UseProfiler)).
 
-    IF (NOT ConnectToDatabases()) THEN DO:
+    IF (NOT ConnectToDatabases()) THEN RETURN.
+
+    IF UseProfiler THEN DO:
+      OS-CREATE-DIR VALUE("profile").
+
+      PROFILER:ENABLED = TRUE.
+      PROFILER:DIRECTORY = "profile".
+      PROFILER:FILE-NAME = SUBSTITUTE("profile/profiler_&1_&2_&3@&4.prof", YEAR(TODAY), MONTH(TODAY), DAY(TODAY), REPLACE(STRING(TIME, "HH:MM:SS"),":","")).
+      PROFILER:LISTINGS = TRUE.
+      PROFILER:DESCRIPTION = "PROFILER".
+      PROFILER:PROFILING = TRUE.
+      PROFILER:TRACE-FILTER = "*".
+    END.
+
+    /* try and run the startup procedure */
+    IF StartupProcedure = ""
+      OR (SEARCH(StartupProcedure) = ?
+      AND SEARCH(REPLACE(StartupProcedure, ".p", ".r")) = ?)
+    THEN DO:
+      Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
       RETURN.
     END.
-    ELSE DO:
-      IF UseProfiler THEN DO:
-        OS-CREATE-DIR VALUE("profile").
 
-        PROFILER:ENABLED = TRUE.
-        PROFILER:DIRECTORY = "profile".
-        PROFILER:FILE-NAME = SUBSTITUTE("profile/profiler_&1_&2_&3@&4.prof", YEAR(TODAY), MONTH(TODAY), DAY(TODAY), REPLACE(STRING(TIME, "HH:MM:SS"),":","")).
-        PROFILER:LISTINGS = TRUE.
-        PROFILER:DESCRIPTION = "PROFILER".
-        PROFILER:PROFILING = TRUE.
-        PROFILER:TRACE-FILTER = "*".
-      END.
+    _RUNNING_LOOP:
+    DO ON STOP UNDO, LEAVE
+      ON ERROR UNDO, LEAVE:
 
-      /*    MESSAGE "StartupProcedure->" + StartupProcedure.*/
-      /*    MESSAGE "ProPath->" + UseProPath.               */
-      /*    MESSAGE "UseProfiler->" + STRING(UseProfiler).  */
+      RUN VALUE(StartupProcedure).
 
-      /* try and run the startup procedure */
-      IF StartupProcedure = ""
-        OR (SEARCH(StartupProcedure) = ?
-        AND SEARCH(REPLACE(StartupProcedure, ".p", ".r")) = ?)
-      THEN DO:
-        Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
-        RETURN.
-      END.
-
-      _RUNNING_LOOP:
-      DO ON STOP UNDO, LEAVE
-        ON ERROR UNDO, LEAVE:
-
-        RUN VALUE(StartupProcedure).
-
-        CATCH er AS Progress.Lang.Error :
-          Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
-          LEAVE _RUNNING_LOOP.
-        END CATCH.
-      END.
-    END. /* databases connected */
+      CATCH er AS Progress.Lang.Error :
+        Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
+        LEAVE _RUNNING_LOOP.
+      END CATCH.
+    END.
 
     IF UseProfiler THEN DO:
       /*turn off profiler and flush the data*/
@@ -373,6 +376,37 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   END METHOD.
 
   METHOD PUBLIC STATIC LOGICAL ConnectToDatabases():
+    DEFINE VARIABLE connectRetrySeconds AS INTEGER NO-UNDO.
+    DEFINE VARIABLE connectRetryAttempt AS INTEGER NO-UNDO.
+
+    connectRetrySeconds = 1.
+    connectRetryAttempt = 1.
+    _CONNECT_DATABASES:
+    DO WHILE TRUE ON ERROR UNDO, RETURN FALSE:
+      IF (DatabaseConnectionAttempt()) THEN LEAVE _CONNECT_DATABASES.
+
+      /* incremental pause up to the limit */
+      Log:Information("Pausing ~{PauseSeconds~} seconds for databases to become available...", BOX(connectRetrySeconds)).
+      PAUSE connectRetrySeconds NO-MESSAGE.
+      connectRetrySeconds = connectRetrySeconds * 2.
+      IF connectRetrySeconds > DatabaseRetryMaxSeconds THEN DO:
+        connectRetrySeconds = DatabaseRetryMaxSeconds.
+      END.
+      /* limit the max attempts? */
+      IF DatabaseRetryMaxAttempts > 0 THEN DO:
+        IF connectRetryAttempt > DatabaseRetryMaxAttempts THEN DO:
+          Log:Error("Databases not connected after ~{ConnectionAttempts~} attempts!", BOX(connectRetryAttempt)).
+          RETURN FALSE.
+        END.
+
+        connectRetryAttempt = connectRetryAttempt + 1.
+      END.
+    END. /*_CONNECT_DATABASES*/
+
+    RETURN TRUE.
+  END METHOD.
+
+  METHOD PUBLIC STATIC LOGICAL DatabaseConnectionAttempt():
     DEFINE VARIABLE connectionStringsEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
 
     connectionStringsEnumerator = ConnectionStrings:GetEnumerator().
@@ -393,7 +427,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
       Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(redactedDatabaseConnectionString)).
       CONNECT VALUE(databaseConnectionString) NO-ERROR.
-      IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+      IF ERROR-STATUS:ERROR THEN DO:
         Log:Error("ERROR: Couldn't connect to database!").
         Log:Error("ERROR: ~{ErrorMessage~}", BOX(ERROR-STATUS:GET-MESSAGE(1))).
         RETURN FALSE.
@@ -428,7 +462,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         PROPATH = configurationSection:Value NO-ERROR.
       END.
       ELSE IF configurationSection:Key = "profiler" THEN DO:
-        Bootstrap:UseProfiler = LOGICAL(configurationSection:VALUE).
+        Bootstrap:UseProfiler = LOGICAL(configurationSection:Value).
       END.
       ELSE IF configurationSection:Key = "databases" THEN DO:
         DEFINE VARIABLE databaseSection     AS ConfigurationSection                                                         NO-UNDO.
@@ -446,7 +480,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
           DEFINE VARIABLE databaseConnectionString AS CHARACTER                                                                    NO-UNDO.
 
-          databaseConnectionString = "".
+          databaseConnectionString = " -ct 1".
           databaseEnumerator = databaseSection:GetChildren().
           _DB_SETTING:
           DO WHILE(databaseEnumerator:MoveNext()):
@@ -485,6 +519,12 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         END. /*_DATABASE*/
 
       END. /*databases*/
+      ELSE IF configurationSection:Key = "databaseRetryMaxSeconds" THEN DO:
+        databaseRetryMaxSeconds = INTEGER(configurationSection:Value) NO-ERROR.
+      END. /*databaseRetryMaxSeconds*/
+      ELSE IF configurationSection:Key = "databaseRetryMaxAttempts" THEN DO:
+        DatabaseRetryMaxAttempts = INTEGER(configurationSection:Value) NO-ERROR.
+      END. /*databaseRetryMaxAttempts*/
 
     END. /*_OPENEDGE*/
 
