@@ -71,7 +71,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   METHOD PUBLIC STATIC VOID Start(environment AS CHARACTER):
     ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
     LogicalDatabaseNames = NEW "System.Collections.Generic.List<character>"().
-    VersionNumber = "1.0.1".
+    VersionNumber = "1.0.2".
     DatabaseRetryMaxSeconds = 60.
     DatabaseRetryMaxAttempts = 0.
 

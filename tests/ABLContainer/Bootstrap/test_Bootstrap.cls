@@ -27,6 +27,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
 
     Bootstrap:ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
+    Bootstrap:LogicalDatabaseNames = NEW "System.Collections.Generic.List<character>"().
 
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
@@ -47,6 +48,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
 
     Bootstrap:ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
+    Bootstrap:LogicalDatabaseNames = NEW "System.Collections.Generic.List<character>"().
 
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
