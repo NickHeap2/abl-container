@@ -28,9 +28,17 @@ END.
 
 RUN SetPropath(propathEnvVar).
 
-DYNAMIC-INVOKE("ABLContainer.Bootstrap.Bootstrap", "Start", environmentEnvVar).
-
-QUIT.
+DO ON STOP UNDO, LEAVE
+   ON ERROR UNDO, LEAVE:
+  DYNAMIC-INVOKE("ABLContainer.Bootstrap.Bootstrap", "Start", environmentEnvVar) NO-ERROR.
+END.
+CATCH er AS Progress.Lang.Error :
+  DYNAMIC-INVOKE("ABLContainer.Logging.Log", "Error", "ERROR: (~{ErrorMessage~})", BOX(er:GetMessage(1))) NO-ERROR.
+END CATCH.
+FINALLY:
+  DYNAMIC-INVOKE("ABLContainer.Logging.Log", "CloseAndFlush") NO-ERROR.
+  QUIT.
+END FINALLY.
 
 /* ***************************  Procedures  *************************** */
 

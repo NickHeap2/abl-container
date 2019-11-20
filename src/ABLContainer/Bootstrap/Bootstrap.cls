@@ -16,6 +16,10 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     GET.
     SET.
 
+  DEFINE PUBLIC STATIC PROPERTY LogicalDatabaseNames AS "System.Collections.Generic.List<character>" NO-UNDO
+    GET.
+    SET.
+
   DEFINE PUBLIC STATIC PROPERTY StartupProcedure AS CHARACTER NO-UNDO
     GET.
     SET.
@@ -66,6 +70,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
   METHOD PUBLIC STATIC VOID Start(environment AS CHARACTER):
     ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
+    LogicalDatabaseNames = NEW "System.Collections.Generic.List<character>"().
     VersionNumber = "1.0.1".
     DatabaseRetryMaxSeconds = 60.
     DatabaseRetryMaxAttempts = 0.
@@ -407,10 +412,19 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   END METHOD.
 
   METHOD PUBLIC STATIC LOGICAL DatabaseConnectionAttempt():
+    DEFINE VARIABLE logicalDatabaseNamesEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
     DEFINE VARIABLE connectionStringsEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
 
     connectionStringsEnumerator = ConnectionStrings:GetEnumerator().
+    logicalDatabaseNamesEnumerator = LogicalDatabaseNames:GetEnumerator().
+    _CONNECT_DATABASE:
     DO WHILE(connectionStringsEnumerator:MoveNext()):
+      logicalDatabaseNamesEnumerator:MoveNext().
+
+      IF CONNECTED(logicalDatabaseNamesEnumerator:Current) THEN DO:
+        NEXT _CONNECT_DATABASE.
+      END.
+
       DEFINE VARIABLE databaseConnectionString AS CHARACTER NO-UNDO.
       DEFINE VARIABLE redactedDatabaseConnectionString AS CHARACTER NO-UNDO.
 
@@ -426,13 +440,15 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       END.
 
       Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(redactedDatabaseConnectionString)).
-      CONNECT VALUE(databaseConnectionString) NO-ERROR.
-      IF ERROR-STATUS:ERROR THEN DO:
-        Log:Error("ERROR: Couldn't connect to database!").
-        Log:Error("ERROR: ~{ErrorMessage~}", BOX(ERROR-STATUS:GET-MESSAGE(1))).
+      DO ON ERROR UNDO, LEAVE
+         ON STOP UNDO, LEAVE:
+        CONNECT VALUE(databaseConnectionString) NO-ERROR.
+      END.
+      IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+        Log:Error("ERROR: Couldn't connect to database! [~{ErrorMessage~}]", BOX(ERROR-STATUS:GET-MESSAGE(1))).
         RETURN FALSE.
       END.
-    END.
+    END. /*_CONNECT_DATABASE*/
 
     RETURN TRUE.
   END.
@@ -498,6 +514,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
             END.
             ELSE IF dbSettingSection:Key = ("logical") THEN DO:
               databaseConnectionString = databaseConnectionString + " -ld " + dbSettingSection:Value.
+              ABLContainer.Bootstrap.Bootstrap:LogicalDatabaseNames:Add(dbSettingSection:Value).
             END.
             ELSE IF dbSettingSection:Key = ("username") THEN DO:
               databaseConnectionString = databaseConnectionString + " -U " + dbSettingSection:Value.
