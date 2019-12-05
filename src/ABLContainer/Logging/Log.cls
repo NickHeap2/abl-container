@@ -102,6 +102,22 @@ CLASS ABLContainer.Logging.Log:
     Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
   END METHOD.
 
+  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
+    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
+  END METHOD.
+
+  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):
+    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray5(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5)).
+  END METHOD.
+
+  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
+    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray6(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5, messageValue6)).
+  END METHOD.
+
+  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, valueArray).
+  END METHOD.
+
   METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue AS System.Object):
     Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray1(messageValue)).
   END METHOD.
@@ -112,6 +128,30 @@ CLASS ABLContainer.Logging.Log:
 
   METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object):
     Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
+  END METHOD.
+
+  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
+    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
+  END METHOD.
+
+  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):
+    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray5(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5)).
+  END METHOD.
+
+  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
+    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray6(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5, messageValue6)).
+  END METHOD.
+
+  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, valueArray).
+  END METHOD.
+
+  METHOD STATIC VOID DebugAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Log:Write(eventTime, LogEventLevel:Debug, ?, messageTemplate, valueArray).
+  END METHOD.
+
+  METHOD STATIC VOID ErrorAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Log:Write(eventTime, LogEventLevel:Error, ?, messageTemplate, valueArray).
   END METHOD.
 
   METHOD STATIC VOID Information (messageTemplate AS CHARACTER):
@@ -142,6 +182,10 @@ CLASS ABLContainer.Logging.Log:
     Serilog.Log:Logger:Information(messageTemplate, ToArray6(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5, messageValue6)).
   END METHOD.
 
+  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Serilog.Log:Logger:Information(messageTemplate, valueArray).
+  END METHOD.
+
   METHOD STATIC VOID Error (messageTemplate AS CHARACTER):
     Serilog.Log:Logger:Error(messageTemplate).
   END METHOD.
@@ -161,6 +205,10 @@ CLASS ABLContainer.Logging.Log:
 
   METHOD STATIC VOID Error (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
     Serilog.Log:Logger:Error(messageTemplate, ToArray2(messageValue1, messageValue2)).
+  END METHOD.
+
+  METHOD STATIC VOID Error (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Serilog.Log:Logger:Error(messageTemplate, valueArray).
   END METHOD.
 
   METHOD STATIC VOID Debug (messageTemplate AS CHARACTER):
@@ -183,6 +231,10 @@ CLASS ABLContainer.Logging.Log:
     Serilog.Log:Logger:Debug(messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
   END METHOD.
 
+  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Serilog.Log:Logger:Debug(messageTemplate, valueArray).
+  END METHOD.
+
   METHOD STATIC VOID Warning (messageTemplate AS CHARACTER):
     Serilog.Log:Logger:Warning(messageTemplate).
   END METHOD.
@@ -193,6 +245,10 @@ CLASS ABLContainer.Logging.Log:
 
   METHOD STATIC VOID Warning (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
     Serilog.Log:Logger:Warning(messageTemplate, ToArray2(messageValue1, messageValue2)).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
+    Serilog.Log:Logger:Warning(messageTemplate, valueArray).
   END METHOD.
 
   METHOD PRIVATE STATIC System.Array ToArray1(messageValue AS System.Object):

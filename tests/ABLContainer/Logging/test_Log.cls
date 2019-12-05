@@ -45,6 +45,57 @@ CLASS ABLContainer.Logging.test_Log IMPLEMENTS ILogHandler:
   END METHOD.
 
   @Test.
+  METHOD PUBLIC VOID canLogWarningArray(  ):
+    DEFINE VARIABLE propertiesArray AS CLASS System.Array NO-UNDO.
+    propertiesArray = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 2).
+    propertiesArray:SetValue("Param1", 0).
+    propertiesArray:SetValue("Param2", 1).
+    Log:Warning("Warning ~{Param1~} ~{Param2~}", propertiesArray).
+    DELETE OBJECT propertiesArray NO-ERROR.
+
+/*    Log:WarningArray("Error ~{Param1~} ~{Param2~}", NEW "System.Object[]"(BOX("PARAM1"), BOX("PARAM2"))).*/
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("Warning ~{Param1~} ~{Param2~}", LastLogEvent:MessageTemplate:Text).
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
+    success = LastLogEvent:Properties:TryGetValue("Param2", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM2~"", logEventPropertyValue:ToString()).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canLogWarningAtArray(  ):
+    DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
+    eventTime = ADD-INTERVAL(NOW, -3, "hours").
+
+    DEFINE VARIABLE propertiesArray AS CLASS System.Array NO-UNDO.
+    propertiesArray = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 2).
+    propertiesArray:SetValue("Param1", 0).
+    propertiesArray:SetValue("Param2", 1).
+    Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~}", propertiesArray).
+    DELETE OBJECT propertiesArray NO-ERROR.
+
+/*    Log:WarningArray("Error ~{Param1~} ~{Param2~}", NEW "System.Object[]"(BOX("PARAM1"), BOX("PARAM2"))).*/
+    Assert:NotNull(LastLogEvent, "LastLogEvent").
+    Assert:Equals("WarningAt ~{Param1~} ~{Param2~}", LastLogEvent:MessageTemplate:Text).
+
+    DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
+    DEFINE VARIABLE success AS LOGICAL NO-UNDO.
+    success = LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
+    success = LastLogEvent:Properties:TryGetValue("Param2", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:Equals("~"PARAM2~"", logEventPropertyValue:ToString()).
+
+  END METHOD.
+
+  @Test.
   METHOD PUBLIC VOID canLogAnError(  ):
 
     Log:Error("TEST ERROR").
