@@ -135,6 +135,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   METHOD PUBLIC STATIC VOID SetSeriLogSettings(configuration AS Configuration):
     DEFINE VARIABLE addTestingLogger AS LOGICAL NO-UNDO.
     DEFINE VARIABLE addPerformanceLogging AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE addDynamicObjectLogging AS LOGICAL NO-UNDO.
 
     DEFINE VARIABLE serilogSection AS ConfigurationSection NO-UNDO.
     serilogSection = configuration:GetSection("SeriLog").
@@ -267,6 +268,9 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           ELSE IF enrichSection:Value = "WithPerformanceCounts" THEN DO:
             addPerformanceLogging = TRUE.
           END.
+          ELSE IF enrichSection:Value = "WithDynamicObjectCounts" THEN DO:
+            addDynamicObjectLogging = TRUE.
+          END.
           ELSE IF enrichSection:Value = "WithSwarmNodeID" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmNodeID", dockerSwarmDetails:Node:ID, FALSE).*/
             keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmNodeID", dockerSwarmDetails:Node:ID)).
@@ -334,10 +338,18 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
     /* add performance context to logs */
     IF addPerformanceLogging THEN DO:
-      DEFINE VARIABLE eventLogEnrichers AS ILogEventEnricher EXTENT 1 NO-UNDO.
-      eventLogEnrichers[1] = NEW PerformanceLogger().
+      DEFINE VARIABLE performanceLoggingEnrichers AS ILogEventEnricher EXTENT 1 NO-UNDO.
+      performanceLoggingEnrichers[1] = NEW PerformanceLogger().
 
-      loggerConfiguration:Enrich:With(eventLogEnrichers).
+      loggerConfiguration:Enrich:With(performanceLoggingEnrichers).
+    END.
+
+    /* add dynamic object context to logs */
+    IF addDynamicObjectLogging THEN DO:
+      DEFINE VARIABLE dynamicObjectEnrichers AS ILogEventEnricher EXTENT 1 NO-UNDO.
+      dynamicObjectEnrichers[1] = NEW DynamicObjectsLogger().
+
+      loggerConfiguration:Enrich:With(dynamicObjectEnrichers).
     END.
 
     Serilog.Log:Logger = loggerConfiguration:CreateLogger().

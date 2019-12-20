@@ -1,14 +1,3 @@
-
- /*------------------------------------------------------------------------
-    File        : PerformanceCounts
-    Purpose     :
-    Syntax      :
-    Description :
-    Author(s)   : Nick Heap
-    Created     : Tue Nov 12 10:31:11 GMT 2019
-    Notes       :
-  ----------------------------------------------------------------------*/
-
 USING ABLContainer.Performance.* FROM PROPATH.
 USING Progress.Lang.*.
 USING System.Diagnostics.* FROM ASSEMBLY.

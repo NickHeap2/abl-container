@@ -1,14 +1,3 @@
-
- /*------------------------------------------------------------------------
-    File        : TestFormatter
-    Purpose     :
-    Syntax      :
-    Description :
-    Author(s)   : Nick Heap
-    Created     : Thu May 30 12:49:17 BST 2019
-    Notes       :
-  ----------------------------------------------------------------------*/
-
 USING ABLContainer.Logging.* FROM PROPATH.
 USING Progress.Lang.*.
 USING Serilog.Events.* FROM ASSEMBLY.
@@ -26,6 +15,10 @@ CLASS ABLContainer.Logging.TestFormatter IMPLEMENTS ITextFormatter:
   METHOD PUBLIC VOID Format (logEvent AS LogEvent, textWriter AS TextWriter):
     OnLog:PUBLISH(logEvent).
 /*    textWriter:WriteLine("Output").*/
+  END METHOD.
+
+  METHOD STATIC PUBLIC VOID ClearLastMessage():
+    DELETE OBJECT LastLogEvent NO-ERROR.
   END METHOD.
 
   METHOD STATIC PUBLIC TestFormatter GetFormatter():
