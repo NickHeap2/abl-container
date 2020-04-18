@@ -599,6 +599,7 @@
 
             <Option if:true="${addAssemblies}" name="-assemblies" value="@{assembliesDir}"/>
             <Option name="-T" value="@{tempDir}"/>
+            <Option name="-reusableObjects" value="0"/>
 
             <DBConnectionSet refid="@{databasesid}" />
 

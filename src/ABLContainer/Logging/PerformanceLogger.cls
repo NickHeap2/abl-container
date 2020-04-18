@@ -9,6 +9,7 @@ BLOCK-LEVEL ON ERROR UNDO, THROW.
 CLASS ABLContainer.Logging.PerformanceLogger IMPLEMENTS ILogEventEnricher :
 
   METHOD PUBLIC VOID Enrich (logEvent AS CLASS LogEvent, propertyFactory AS CLASS ILogEventPropertyFactory):
+    /* cpu */
     DEFINE VARIABLE cpuPercentage AS DECIMAL NO-UNDO.
     cpuPercentage = PerformanceCounts:GetCPU().
 
@@ -16,6 +17,15 @@ CLASS ABLContainer.Logging.PerformanceLogger IMPLEMENTS ILogEventEnricher :
     cpuProperty = propertyFactory:CreateProperty("ProcessCPUPercentage", cpuPercentage, FALSE).
     logEvent:AddOrUpdateProperty(cpuProperty).
 
+    /* handle count */
+    DEFINE VARIABLE handleCount AS DECIMAL NO-UNDO.
+    handleCount = PerformanceCounts:GetHandles().
+
+    DEFINE VARIABLE handleCountProperty AS LogEventProperty NO-UNDO.
+    handleCountProperty = propertyFactory:CreateProperty("ProcessHandleCount", handleCount, FALSE).
+    logEvent:AddOrUpdateProperty(handleCountProperty).
+
+    /* memory */
     DEFINE VARIABLE memoryBytes AS DECIMAL NO-UNDO.
     memoryBytes = PerformanceCounts:GetMemory().
 

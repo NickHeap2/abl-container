@@ -2,6 +2,7 @@ USING ABLContainer.Bootstrap.* FROM PROPATH.
 USING ABLContainer.Configuration.* FROM PROPATH.
 USING ABLContainer.DockerSwarm.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
+USING Progress.Lang.*.
 USING Serilog.* FROM ASSEMBLY.
 USING Serilog.Core.* FROM ASSEMBLY.
 USING Serilog.Events.* FROM ASSEMBLY.
@@ -58,6 +59,16 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     ABLContainer.Configuration.Configuration:Current = configuration.
 
     RETURN configuration.
+
+    CATCH ae AS Progress.Lang.AppError :
+      MESSAGE ae:GetMessage(1).
+      RETURN ?.
+    END CATCH.
+    CATCH e AS Progress.Lang.Error :
+      MESSAGE e:GetMessage(1).
+      RETURN ?.
+    END CATCH.
+
   END METHOD.
 
   METHOD PUBLIC STATIC VOID SetSettings(configuration AS Configuration):
@@ -77,6 +88,10 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = BuildConfiguration(environment).
+    IF NOT VALID-OBJECT(configuration) THEN DO:
+      MESSAGE "Configuration could not be loaded!".
+      RETURN.
+    END.
 
     SetSettings(configuration).
 
@@ -142,6 +157,8 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     IF NOT VALID-OBJECT(serilogSection) THEN DO:
       RETURN.
     END.
+
+    IF NOT VALID-OBJECT(ABLContainer.Configuration.Configuration:Current) THEN UNDO, THROW NEW AppError("No current configuration is set!").
 
     DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
     dockerSwarmDetails = GetSwarmDetails().

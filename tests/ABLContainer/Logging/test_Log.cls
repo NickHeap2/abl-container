@@ -289,6 +289,7 @@ CLASS ABLContainer.Logging.test_Log:
   METHOD PUBLIC VOID canLogAWarningWithTwoParams(  ):
 
     Log:Warning("Warning ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
 
@@ -298,6 +299,7 @@ CLASS ABLContainer.Logging.test_Log:
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
     Log:WarningAt(eventTime, "WarningAt ~{Param1~}", BOX("PARAM1")).
+    Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
 
@@ -307,6 +309,7 @@ CLASS ABLContainer.Logging.test_Log:
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
     Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
 
@@ -316,6 +319,7 @@ CLASS ABLContainer.Logging.test_Log:
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
     Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+    Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
 
@@ -327,9 +331,11 @@ CLASS ABLContainer.Logging.test_Log:
 
     Log:InformationAt(eventTime, "InformationAt ~{Param1~}", BOX("PARAM1")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
+
     lastLogEventEventTime = TestFormatter:LastLogEvent:Timestamp:DateTime.
     Assert:Equals(STRING(eventTime, "99/99/9999 HH:MM:SS.SSS"), STRING(lastLogEventEventTime, "99/99/9999 HH:MM:SS.SSS")).
     Assert:Equals("InformationAt ~{Param1~}", TestFormatter:LastLogEvent:MessageTemplate:Text).
+
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
@@ -380,9 +386,10 @@ CLASS ABLContainer.Logging.test_Log:
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
       :SetBasePath("..")
-      :AddJsonFile("appsettings.enrichers.json", TRUE)
+      :AddJsonFile("appsettings.context.json", TRUE)
       :AddEnvironmentVariables().
     configuration = configurationBuilder:Build().
+    ABLContainer.Configuration.Configuration:Current = configuration.
     Assert:NotNull(configuration).
 
     Bootstrap:SetSettings(configuration).
@@ -425,9 +432,10 @@ CLASS ABLContainer.Logging.test_Log:
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
       :SetBasePath("..")
-      :AddJsonFile("appsettings.enrichers.json", TRUE)
+      :AddJsonFile("appsettings.context.json", TRUE)
       :AddEnvironmentVariables().
     configuration = configurationBuilder:Build().
+    ABLContainer.Configuration.Configuration:Current = configuration.
     Assert:NotNull(configuration).
 
     Bootstrap:SetSettings(configuration).

@@ -12,8 +12,14 @@ CLASS ABLContainer.Logging.TestFormatter IMPLEMENTS ITextFormatter:
   DEFINE PUBLIC STATIC VARIABLE LastLogEvent AS LogEvent NO-UNDO.
   DEFINE PUBLIC EVENT OnLog SIGNATURE VOID (logEvent AS LogEvent).
 
+/*  DEFINE PUBLIC STATIC PROPERTY SaveLastEvents AS LOGICAL INITIAL TRUE NO-UNDO*/
+/*  GET.                                                                        */
+/*  SET.                                                                        */
+
   METHOD PUBLIC VOID Format (logEvent AS LogEvent, textWriter AS TextWriter):
-    OnLog:PUBLISH(logEvent).
+/*    IF SaveLastEvents THEN DO:*/
+      OnLog:PUBLISH(logEvent).
+/*    END.*/
 /*    textWriter:WriteLine("Output").*/
   END METHOD.
 

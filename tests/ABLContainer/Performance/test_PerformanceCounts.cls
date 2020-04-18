@@ -60,13 +60,17 @@ CLASS ABLContainer.Performance.test_PerformanceCounts:
     Assert:Equals("TEST INFORMATION", TestFormatter:LastLogEvent:MessageTemplate:Text).
 
     /* check properties */
-    Assert:Equals(5, TestFormatter:LastLogEvent:Properties:Count).
+    Assert:Equals(6, TestFormatter:LastLogEvent:Properties:Count).
 
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("ProcessCPUPercentage", OUTPUT logEventPropertyValue).
     Assert:Equals(TRUE, success).
     Assert:NotZero(INTEGER(logEventPropertyValue:ToString()), "ProcessCPUPercentage").
+
+    success = TestFormatter:LastLogEvent:Properties:TryGetValue("ProcessHandleCount", OUTPUT logEventPropertyValue).
+    Assert:Equals(TRUE, success).
+    Assert:NotZero(INTEGER(logEventPropertyValue:ToString()), "ProcessHandleCount").
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("ProcessMemoryMb", OUTPUT logEventPropertyValue).
     Assert:Equals(TRUE, success).

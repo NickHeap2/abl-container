@@ -16,7 +16,7 @@ CLASS ABLContainer.Logging.Log:
   DEFINE STATIC VARIABLE propertiesArray6 AS CLASS System.Array NO-UNDO.
 
   DEFINE STATIC VARIABLE propertyTokenClass AS CLASS Progress.Lang.Class NO-UNDO.
-  DEFINE STATIC VARIABLE messageTemplateParser AS CLASS MessageTemplateParser NO-UNDO.
+/*  DEFINE STATIC VARIABLE messageTemplateParser AS CLASS MessageTemplateParser NO-UNDO.*/
 
   METHOD STATIC PUBLIC LOGICAL IsDebugEnabled ():
     RETURN Serilog.Log:IsEnabled(LogEventLevel:Debug).
@@ -47,45 +47,22 @@ CLASS ABLContainer.Logging.Log:
     DEFINE VARIABLE eventDateTimeOffset AS DateTimeOffset NO-UNDO.
     eventDateTimeOffset = NEW DateTimeOffset(eventTime).
 
-    IF NOT VALID-OBJECT(messageTemplateParser) THEN DO:
-      messageTemplateParser = NEW MessageTemplateParser().
-    END.
-
     DEFINE VARIABLE messageTemplate AS MessageTemplate NO-UNDO.
-    messageTemplate = messageTemplateParser:Parse(messageTemplateText).
+    DEFINE VARIABLE propertiesList AS CLASS "System.Collections.Generic.IEnumerable<Serilog.Events.LogEventProperty>" NO-UNDO.
 
-    DEFINE VARIABLE propertiesList AS CLASS "System.Collections.Generic.List<Serilog.Events.LogEventProperty>" NO-UNDO.
-    propertiesList = NEW "System.Collections.Generic.List<Serilog.Events.LogEventProperty>"().
+    IF (Serilog.Log:Logger:BindMessageTemplate(messageTemplateText, properties, OUTPUT messageTemplate, OUTPUT propertiesList)) THEN DO:
+      DEFINE VARIABLE logEvent AS LogEvent NO-UNDO.
+      logEvent = NEW LogEvent(eventDateTimeOffset, level, exception, messageTemplate, propertiesList).
 
-    DEFINE VARIABLE tokensEnumerator AS "System.Collections.Generic.IEnumerator<Serilog.Parsing.MessageTemplateToken>" NO-UNDO.
-    tokensEnumerator = messageTemplate:Tokens:GetEnumerator().
+      Serilog.Log:Logger:Write(logEvent).
 
-    IF NOT VALID-OBJECT(propertyTokenClass) THEN DO:
-      propertyTokenClass = GET-CLASS(PropertyToken).
+/*      DELETE OBJECT logEvent NO-ERROR.*/
     END.
+/*    ELSE DO:                                             */
+/*      UNDO, THROW NEW AppError("Couldn't bind message!").*/
+/*    END.                                                 */
 
-    DEFINE VARIABLE thisProperty AS INTEGER NO-UNDO.
-    thisProperty = 0.
-    _TOKENS:
-    DO WHILE tokensEnumerator:MoveNext():
-      IF (tokensEnumerator:Current:GetClass() <> propertyTokenClass) THEN NEXT _TOKENS.
-
-      DEFINE VARIABLE propertyToken AS PropertyToken NO-UNDO.
-      propertyToken = CAST(tokensEnumerator:Current, PropertyToken).
-      DEFINE VARIABLE prop AS LogEventProperty NO-UNDO.
-
-      prop = NEW LogEventProperty(propertyToken:PropertyName, NEW ScalarValue(properties:GetValue(thisProperty))).
-      propertiesList:Add(prop).
-
-      thisProperty = thisProperty + 1.
-    END.
-
-    DEFINE VARIABLE logEvent AS LogEvent NO-UNDO.
-    logEvent = NEW LogEvent(eventDateTimeOffset, level, exception, messageTemplate, propertiesList).
-
-    Serilog.Log:Logger:Write(logEvent).
-
-    DELETE OBJECT tokensEnumerator NO-ERROR.
+    DELETE OBJECT eventDateTimeOffset NO-ERROR.
     DELETE OBJECT messageTemplate NO-ERROR.
     DELETE OBJECT propertiesList NO-ERROR.
   END METHOD.

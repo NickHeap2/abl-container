@@ -18,6 +18,10 @@ CLASS ABLContainer.Performance.PerformanceCounts:
   GET.
   SET.
 
+  DEFINE PRIVATE PROPERTY HandlePerformanceCounter AS PerformanceCounter NO-UNDO
+  GET.
+  SET.
+
   DEFINE STATIC VARIABLE performanceCountsInstance AS PerformanceCounts NO-UNDO.
 
   CONSTRUCTOR PUBLIC PerformanceCounts (  ):
@@ -71,6 +75,12 @@ CLASS ABLContainer.Performance.PerformanceCounts:
       IF VALID-OBJECT(THIS-OBJECT:MemoryPerformanceCounter) THEN DO:
         THIS-OBJECT:MemoryPerformanceCounter:NextValue().
       END.
+
+      THIS-OBJECT:HandlePerformanceCounter = NEW PerformanceCounter("Process", "Handle Count", thisInstanceName, TRUE).
+      IF VALID-OBJECT(THIS-OBJECT:HandlePerformanceCounter) THEN DO:
+        THIS-OBJECT:HandlePerformanceCounter:NextValue().
+      END.
+
       /* sleep 500 to enable first stats to be accurate */
       System.Threading.Thread:Sleep(500).
 
@@ -85,6 +95,16 @@ CLASS ABLContainer.Performance.PerformanceCounts:
     END.
 
     RETURN System.Math:Round(performanceCountsInstance:CpuPerformanceCounter:NextValue() / performanceCountsInstance:ProcessorCount, 2).
+
+  END METHOD.
+
+  METHOD PUBLIC STATIC DECIMAL GetHandles(  ):
+
+    IF NOT VALID-OBJECT(performanceCountsInstance) THEN DO:
+      performanceCountsInstance = NEW PerformanceCounts().
+    END.
+
+    RETURN performanceCountsInstance:HandlePerformanceCounter:NextValue().
 
   END METHOD.
 
@@ -105,6 +125,10 @@ CLASS ABLContainer.Performance.PerformanceCounts:
 	   THIS-OBJECT:CpuPerformanceCounter:Dispose() NO-ERROR.
 	   DELETE OBJECT THIS-OBJECT:CpuPerformanceCounter NO-ERROR.
 	 END.
+   IF VALID-OBJECT(THIS-OBJECT:HandlePerformanceCounter) THEN DO:
+     THIS-OBJECT:HandlePerformanceCounter:Dispose() NO-ERROR.
+     DELETE OBJECT THIS-OBJECT:HandlePerformanceCounter NO-ERROR.
+   END.
    IF VALID-OBJECT(THIS-OBJECT:MemoryPerformanceCounter) THEN DO:
      THIS-OBJECT:MemoryPerformanceCounter:Dispose() NO-ERROR.
      DELETE OBJECT THIS-OBJECT:MemoryPerformanceCounter NO-ERROR.

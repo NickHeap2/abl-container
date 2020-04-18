@@ -331,6 +331,20 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
 
   END METHOD.
 
+
+  @Test(expected="Progress.Lang.AppError").
+  METHOD PUBLIC VOID canCopeWithCorruptConfigFile( ):
+    DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
+    DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
+
+    configurationBuilder = NEW ConfigurationBuilder().
+    configurationBuilder
+      :SetBasePath("..")
+      :AddJsonFile("appsettings.currupt.json", FALSE).
+    configuration = configurationBuilder:Build().
+
+  END METHOD.
+
   @TearDown.
   METHOD PUBLIC VOID tearDown():
     System.Environment:SetEnvironmentVariable("Application__stringSetting", "").
