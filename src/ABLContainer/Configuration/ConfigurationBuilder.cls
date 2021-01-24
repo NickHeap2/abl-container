@@ -1,8 +1,9 @@
 USING ABLContainer.Configuration.* FROM PROPATH.
+USING ABLContainer.Util.* FROM PROPATH.
 USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Json.ObjectModel.*.
 USING Progress.Lang.*.
-USING System.IO.* FROM ASSEMBLY.
+/*USING System.IO.* FROM ASSEMBLY.*/
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -61,7 +62,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       directoryName = System.IO.Path:Combine(basePath, directoryName).
     END.
 
-    IF NOT Directory:Exists(directoryName) THEN DO:
+    IF NOT FileSystem:DirectoryExists(directoryName) THEN DO:
       IF optional = FALSE THEN DO:
         UNDO, THROW NEW Progress.Lang.AppError("Directory doesn't exist!").
       END.
@@ -109,7 +110,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       fileName = System.IO.Path:Combine(basePath, fileName).
     END.
 
-    IF NOT File:Exists(fileName) THEN DO:
+    IF NOT FileSystem:FileExists(fileName) THEN DO:
       IF optional = FALSE THEN DO:
         UNDO, THROW NEW Progress.Lang.AppError("File doesn't exist!").
       END.
@@ -133,27 +134,27 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
   END METHOD.
 
   METHOD PUBLIC ConfigurationBuilder AddEnvironmentVariables(prefix AS CHARACTER):
-    RETURN THIS-OBJECT.
+/*    MESSAGE "Adding variables...".*/
 
-    DEFINE VARIABLE envVars AS ICollection NO-UNDO.
-    /*TODO*/
-    /*envVars = System.Environment:GetEnvironmentVariables().*/
+    IF NOT VALID-OBJECT(EnvVars:SystemEnvVars) THEN DO:
+      EnvVars:GetEnvVars("*__*").
+    END.
 
-    DEFINE VARIABLE dictEnumerator AS IIterator NO-UNDO.
-
-    /*TODO*/
-    /*dictEnumerator = envVars:GetEnumerator().*/
+    DEFINE VARIABLE envVarIterator AS IIterator NO-UNDO.
+    envVarIterator = EnvVars:SystemEnvVars:EntrySet:Iterator().
 
     DEFINE VARIABLE envVarName  AS CHARACTER NO-UNDO.
     DEFINE VARIABLE envVarValue AS CHARACTER NO-UNDO.
 
+/*    MESSAGE "Got " + STRING(EnvVars:SystemEnvVars:Size) + " env vars".*/
+
     _ENV_VARS:
-    DO WHILE(dictEnumerator:HasNext()):
+    DO WHILE(envVarIterator:HasNext()):
       DEFINE VARIABLE currentConfiguration AS IMapEntry NO-UNDO.
-      currentConfiguration = CAST(dictEnumerator:Next(), IMapEntry).
+      currentConfiguration = CAST(envVarIterator:Next(), IMapEntry).
       
-      envVarName = STRING(currentConfiguration:Key).
-      envVarValue = STRING(currentConfiguration:Value).
+      envVarName = STRING(currentConfiguration:Key:ToString()).
+      envVarValue = STRING(currentConfiguration:Value:ToString()).
 
       IF (prefix <> ""
         AND NOT envVarName BEGINS prefix)
@@ -164,7 +165,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
       envVarName = REPLACE(envVarName, "__", ":").
 
-      /*      MESSAGE envVarName "->" envVarValue.*/
+/*      MESSAGE envVarName "->" envVarValue.*/
       IF configurationDictionary:ContainsKey(envVarName) THEN DO:
         configurationDictionary:Put(envVarName, envVarValue).
       END.

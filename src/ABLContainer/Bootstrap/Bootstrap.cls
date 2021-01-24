@@ -96,7 +96,8 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     SetSettings(configuration).
 
     Log:Information("OpenEdge version: ~{OpenEdgeVersion~}", BOX(PROVERSION(1))).
-    Log:Information(".net runtime version: ~{DotnetRuntimeVersion~}", System.Environment:Version).
+    /*TODO*//* can't do this on linux */
+/*    Log:Information(".net runtime version: ~{DotnetRuntimeVersion~}", System.Environment:Version).*/
 
     Log:Information("ABLContainer version: ~{ABLContainerVersion~}", BOX(VersionNumber)).
     Log:Information("StartupProcedure: ~{StartupProcedure~}", BOX(StartupProcedure)).
@@ -148,6 +149,10 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   END METHOD.
 
   METHOD PUBLIC STATIC VOID SetSeriLogSettings(configuration AS Configuration):
+
+    DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
+    dockerSwarmDetails = GetSwarmDetails().
+
   /*TODO*//***
     DEFINE VARIABLE addTestingLogger AS LOGICAL NO-UNDO.
     DEFINE VARIABLE addPerformanceLogging AS LOGICAL NO-UNDO.
@@ -160,9 +165,6 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     END.
 
     IF NOT VALID-OBJECT(ABLContainer.Configuration.Configuration:Current) THEN UNDO, THROW NEW AppError("No current configuration is set!").
-
-    DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
-    dockerSwarmDetails = GetSwarmDetails().
 
     DEFINE VARIABLE loggerConfiguration AS LoggerConfiguration NO-UNDO.
     loggerConfiguration = NEW loggerConfiguration().
@@ -392,20 +394,21 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
   METHOD PRIVATE STATIC DockerSwarmDetails GetSwarmDetails():
     DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
+
     dockerSwarmDetails = NEW DockerSwarmDetails().
     dockerSwarmDetails:Node = NEW Node().
-    dockerSwarmDetails:Node:ID = System.Environment:GetEnvironmentVariable("SWARM_NODE_ID").
-    dockerSwarmDetails:Node:Hostname = System.Environment:GetEnvironmentVariable("SWARM_NODE_HOSTNAME").
+    dockerSwarmDetails:Node:ID = EnvVars:GetEnvVar("SWARM_NODE_ID").
+    dockerSwarmDetails:Node:Hostname = EnvVars:GetEnvVar("SWARM_NODE_HOSTNAME").
 
     dockerSwarmDetails:Service = NEW Service().
-    dockerSwarmDetails:Service:ID = System.Environment:GetEnvironmentVariable("SWARM_SERVICE_ID").
-    dockerSwarmDetails:Service:Name = System.Environment:GetEnvironmentVariable("SWARM_SERVICE_NAME").
-    dockerSwarmDetails:Service:Labels = System.Environment:GetEnvironmentVariable("SWARM_SERVICE_LABELS").
+    dockerSwarmDetails:Service:ID = EnvVars:GetEnvVar("SWARM_SERVICE_ID").
+    dockerSwarmDetails:Service:Name = EnvVars:GetEnvVar("SWARM_SERVICE_NAME").
+    dockerSwarmDetails:Service:Labels = EnvVars:GetEnvVar("SWARM_SERVICE_LABELS").
 
     dockerSwarmDetails:Task = NEW Task().
-    dockerSwarmDetails:Task:ID = System.Environment:GetEnvironmentVariable("SWARM_TASK_ID").
-    dockerSwarmDetails:Task:Name = System.Environment:GetEnvironmentVariable("SWARM_TASK_NAME").
-    dockerSwarmDetails:Task:Slot = System.Environment:GetEnvironmentVariable("SWARM_TASK_SLOT").
+    dockerSwarmDetails:Task:ID = EnvVars:GetEnvVar("SWARM_TASK_ID").
+    dockerSwarmDetails:Task:Name = EnvVars:GetEnvVar("SWARM_TASK_NAME").
+    dockerSwarmDetails:Task:Slot = EnvVars:GetEnvVar("SWARM_TASK_SLOT").
 
     RETURN dockerSwarmDetails.
   END METHOD.
@@ -495,17 +498,17 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       RETURN.
     END.
 
-    DEFINE VARIABLE openedgeEnumerator AS IIterator NO-UNDO.
-    openedgeEnumerator = openedgeSection:GetChildren().
+    DEFINE VARIABLE openedgeIterator AS IIterator NO-UNDO.
+    openedgeIterator = openedgeSection:GetChildren().
     _OPENEDGE:
-    DO WHILE(openedgeEnumerator:HasNext()):
+    DO WHILE(openedgeIterator:HasNext()):
       DEFINE VARIABLE nextConfigurationSection AS IMapEntry NO-UNDO.
-      nextConfigurationSection = CAST(openedgeEnumerator:Next(), IMapEntry).
+      nextConfigurationSection = CAST(openedgeIterator:Next(), IMapEntry).
 
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
       configurationSection = CAST(nextConfigurationSection:Value, ConfigurationSection).
 
-      /*      MESSAGE SUBSTITUTE("configurationSection &1->&2", configurationSection:Key, configurationSection:Value).*/
+/*      MESSAGE SUBSTITUTE("configurationSection &1->&2", configurationSection:Key, configurationSection:Value).*/
 
       IF configurationSection:Key = "startupProcedure" THEN DO:
         Bootstrap:StartupProcedure = configurationSection:Value.
@@ -519,27 +522,27 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       END.
       ELSE IF configurationSection:Key = "databases" THEN DO:
         DEFINE VARIABLE databaseSection     AS ConfigurationSection NO-UNDO.
-        DEFINE VARIABLE databasesEnumerator AS IIterator            NO-UNDO.
+        DEFINE VARIABLE databasesIterator AS IIterator            NO-UNDO.
 
-        databasesEnumerator = configurationSection:GetChildren().
+        databasesIterator = configurationSection:GetChildren().
         _DATABASE:
-        DO WHILE(databasesEnumerator:HasNext()):
+        DO WHILE(databasesIterator:HasNext()):
           DEFINE VARIABLE nextDatabaseSection AS IMapEntry NO-UNDO.
-          nextDatabaseSection = CAST(databasesEnumerator:Next(), IMapEntry).
+          nextDatabaseSection = CAST(databasesIterator:Next(), IMapEntry).
 
           databaseSection = CAST(nextDatabaseSection:Value, ConfigurationSection).
           /*          MESSAGE SUBSTITUTE("databaseSection &1->&2", databaseSection:Key, databaseSection:Value).*/
           DEFINE VARIABLE dbSettingSection         AS ConfigurationSection NO-UNDO.
-          DEFINE VARIABLE databaseEnumerator       AS IIterator            NO-UNDO.
+          DEFINE VARIABLE databaseIterator         AS IIterator            NO-UNDO.
 
           DEFINE VARIABLE databaseConnectionString AS CHARACTER                                                                    NO-UNDO.
 
           databaseConnectionString = " -ct 1".
-          databaseEnumerator = databaseSection:GetChildren().
+          databaseIterator = databaseSection:GetChildren().
           _DB_SETTING:
-          DO WHILE(databaseEnumerator:HasNext()):
+          DO WHILE(databaseIterator:HasNext()):
             DEFINE VARIABLE nextDbSettingSection AS IMapEntry NO-UNDO.
-            nextDbSettingSection = CAST(databasesEnumerator:Next(), IMapEntry).
+            nextDbSettingSection = CAST(databaseIterator:Next(), IMapEntry).
 
             dbSettingSection = CAST(nextDbSettingSection:Value, ConfigurationSection).
             /*            MESSAGE SUBSTITUTE("dbSettingSection &1->&2", dbSettingSection:Key, dbSettingSection:Value).*/

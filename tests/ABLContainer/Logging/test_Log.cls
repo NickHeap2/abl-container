@@ -24,6 +24,7 @@ CLASS ABLContainer.Logging.test_Log:
     TestLogger:CreateLogger(THIS-OBJECT).
     TestFormatter:ClearLastMessage().
 
+    EnvVars:ClearEnvVars().
   END METHOD.
 
   @Test.
@@ -50,10 +51,10 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param2", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM2~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -76,10 +77,10 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param2", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM2~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -164,7 +165,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -179,10 +180,10 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param2", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM2~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -196,7 +197,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -231,7 +232,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -280,7 +281,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -339,7 +340,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("Param1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"PARAM1~"", logEventPropertyValue:ToString()).
 
   END METHOD.
@@ -378,6 +379,8 @@ CLASS ABLContainer.Logging.test_Log:
 
   END METHOD.
 
+  /*TODO*/
+  /*
   @Test.
   METHOD PUBLIC VOID canLogMachineNameAndProcessIdProperties(  ):
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
@@ -406,11 +409,11 @@ CLASS ABLContainer.Logging.test_Log:
     Assert:Equals(12, TestFormatter:LastLogEvent:Properties:Count).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("MachineName", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:NotEqual(logEventPropertyValue:ToString(), "~"~"").
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("ProcessId", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:NotEqual(logEventPropertyValue:ToString(), "~"~"").
 
   END.
@@ -452,35 +455,35 @@ CLASS ABLContainer.Logging.test_Log:
     Assert:Equals(12, TestFormatter:LastLogEvent:Properties:Count).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmNodeID", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"NODE_ID~"", logEventPropertyValue:ToString()).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmNodeHostname", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"NODE_HOSTNAME~"", logEventPropertyValue:ToString()).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmServiceID", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"SERVICE_ID~"", logEventPropertyValue:ToString()).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmServiceName", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"SERVICE_NAME~"", logEventPropertyValue:ToString()).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmServiceLabels", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"SERVICE_LABELS~"", logEventPropertyValue:ToString()).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmTaskID", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TASK_ID~"", logEventPropertyValue:ToString()).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmTaskSlot", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TASK_SLOT~"", logEventPropertyValue:ToString()).
 
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("SwarmTaskName", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TASK_NAME~"", logEventPropertyValue:ToString()).
 
 /*    Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).*/
@@ -493,6 +496,7 @@ CLASS ABLContainer.Logging.test_Log:
 /*    END.                                                                                         */
 
   END METHOD.
+  */
 
   @Test.
   METHOD PUBLIC VOID canPushProperty(  ):
@@ -513,7 +517,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("TestName", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TestValue~"", logEventPropertyValue:ToString()).
 
 
@@ -543,7 +547,7 @@ CLASS ABLContainer.Logging.test_Log:
     Assert:Equals("TEST INFORMATION 1", TestFormatter:LastLogEvent:MessageTemplate:Text).
     Assert:Equals(1, TestFormatter:LastLogEvent:Properties:Count).
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("TestName1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).
 
     testProperty2 = Log:PushProperty("TestName2", BOX("TestValue2")).
@@ -553,10 +557,10 @@ CLASS ABLContainer.Logging.test_Log:
     Assert:Equals("TEST INFORMATION 2", TestFormatter:LastLogEvent:MessageTemplate:Text).
     Assert:Equals(2, TestFormatter:LastLogEvent:Properties:Count).
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("TestName1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("TestName2", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TestValue2~"", logEventPropertyValue:ToString()).
 
     testProperty2:Dispose().
@@ -567,7 +571,7 @@ CLASS ABLContainer.Logging.test_Log:
     Assert:Equals("TEST INFORMATION 3", TestFormatter:LastLogEvent:MessageTemplate:Text).
     Assert:Equals(1, TestFormatter:LastLogEvent:Properties:Count).
     success = TestFormatter:LastLogEvent:Properties:TryGetValue("TestName1", OUTPUT logEventPropertyValue).
-    Assert:Equals(TRUE, success).
+    Assert:IsTrue(success).
     Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).
 
     testProperty1:Dispose().

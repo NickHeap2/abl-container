@@ -1,4 +1,4 @@
-USING ABLContainer.Configuration.*.
+USING ABLContainer.Configuration.* FROM PROPATH.
 USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
 

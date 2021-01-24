@@ -9,7 +9,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
 
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
-
+    EnvVars:ClearEnvVars().
   END METHOD.
 
   @Test.
@@ -167,6 +167,8 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     configuration = configurationBuilder:Build().
     Assert:NotNull(configuration).
 
+    Assert:Equals(4, EnvVars:SystemEnvVars:Size).
+
 /*    DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.*/
 /*    configurationEnumerator = configuration:GetChildren().                                                                      */
 /*    DO WHILE(configurationEnumerator:MoveNext()):                                                                               */
@@ -244,6 +246,8 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     configurationBuilder
       :AddEnvironmentVariables("ArrayTest__").
 
+    Assert:Equals(4, EnvVars:SystemEnvVars:Size).
+
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = configurationBuilder:Build().
     Assert:NotNull(configuration).
@@ -263,6 +267,7 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     DEFINE VARIABLE iChildCount AS INTEGER NO-UNDO.
     iChildCount = 0.
     DO WHILE(configurationIterator0:HasNext()):
+
       DEFINE VARIABLE nextArgsConfiguration0 AS IMapEntry NO-UNDO.
       nextArgsConfiguration0 = CAST(configurationIterator0:Next(), IMapEntry).
 
@@ -294,8 +299,9 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
 
     iChildCount = 0.
     DO WHILE(configurationIterator1:HasNext()):
+
       DEFINE VARIABLE nextArgsConfiguration1 AS IMapEntry NO-UNDO.
-      nextArgsConfiguration1 = CAST(configurationIterator0:Next(), IMapEntry).
+      nextArgsConfiguration1 = CAST(configurationIterator1:Next(), IMapEntry).
 
       iChildCount = iChildCount + 1.
 

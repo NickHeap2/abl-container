@@ -13,6 +13,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
     previousPropath = PROPATH.
+    EnvVars:ClearEnvVars().
   END METHOD.
 
   @Test.
@@ -64,6 +65,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
 
     DEFINE VARIABLE connectionStringIterator AS IIterator NO-UNDO.
     connectionStringIterator = Bootstrap:ConnectionStrings:Iterator().
+    Assert:NotNull(connectionStringIterator).
 
     DEFINE VARIABLE connectionString AS CHARACTER NO-UNDO.
     connectionString = CAST(connectionStringIterator:Next(), OpenEdge.Core.String):ToString().
