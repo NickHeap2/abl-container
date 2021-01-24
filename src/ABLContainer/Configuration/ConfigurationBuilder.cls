@@ -1,15 +1,15 @@
 USING ABLContainer.Configuration.* FROM PROPATH.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Json.ObjectModel.*.
 USING Progress.Lang.*.
-USING System.Collections.* FROM ASSEMBLY.
 USING System.IO.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
-  DEFINE VARIABLE basePath                AS CHARACTER                                                     NO-UNDO.
-  DEFINE VARIABLE configurationDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>" NO-UNDO.
+  DEFINE VARIABLE basePath                AS CHARACTER        NO-UNDO.
+  DEFINE VARIABLE configurationDictionary AS IStringStringMap NO-UNDO.
 
   METHOD PRIVATE VOID AddArraySetting(settingName AS CHARACTER, propertyType AS INTEGER, propertyIndex AS INTEGER, theArray AS JsonArray):
     DEFINE VARIABLE settingValue AS CHARACTER NO-UNDO.
@@ -25,10 +25,10 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
     END.
 
     IF configurationDictionary:ContainsKey(settingName) THEN DO:
-      configurationDictionary[settingName] = settingValue.
+      configurationDictionary:Put(settingName, settingValue).
     END.
     ELSE DO:
-      configurationDictionary:Add(settingName, settingValue).
+      configurationDictionary:Put(settingName, settingValue).
     END.
   END METHOD.
 
@@ -46,10 +46,10 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
     END.
 
     IF configurationDictionary:ContainsKey(settingName) THEN DO:
-      configurationDictionary[settingName] = settingValue.
+      configurationDictionary:Put(settingName, settingValue).
     END.
     ELSE DO:
-      configurationDictionary:Add(settingName, settingValue).
+      configurationDictionary:Put(settingName, settingValue).
     END.
   END METHOD.
 
@@ -90,10 +90,10 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       settingName = REPLACE(fileName, "__", ":").
 
       IF configurationDictionary:ContainsKey(settingName) THEN DO:
-        configurationDictionary[settingName] = fileContents.
+        configurationDictionary:Put(settingName, fileContents).
       END.
       ELSE DO:
-        configurationDictionary:Add(settingName, fileContents).
+        configurationDictionary:Put(settingName, fileContents).
       END.
     END.
     INPUT CLOSE.
@@ -125,7 +125,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
   END METHOD.
 
   CONSTRUCTOR PUBLIC ConfigurationBuilder (  ):
-    configurationDictionary = NEW "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>"().
+    configurationDictionary = NEW StringStringMap().
   END CONSTRUCTOR.
 
   METHOD PUBLIC ConfigurationBuilder AddEnvironmentVariables():
@@ -133,20 +133,27 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
   END METHOD.
 
   METHOD PUBLIC ConfigurationBuilder AddEnvironmentVariables(prefix AS CHARACTER):
-    DEFINE VARIABLE envVars AS IDictionary NO-UNDO.
-    envVars = System.Environment:GetEnvironmentVariables().
+    RETURN THIS-OBJECT.
 
-    DEFINE VARIABLE dictEnum AS IDictionaryEnumerator NO-UNDO.
+    DEFINE VARIABLE envVars AS ICollection NO-UNDO.
+    /*TODO*/
+    /*envVars = System.Environment:GetEnvironmentVariables().*/
 
-    dictEnum = envVars:GetEnumerator().
+    DEFINE VARIABLE dictEnumerator AS IIterator NO-UNDO.
+
+    /*TODO*/
+    /*dictEnumerator = envVars:GetEnumerator().*/
 
     DEFINE VARIABLE envVarName  AS CHARACTER NO-UNDO.
     DEFINE VARIABLE envVarValue AS CHARACTER NO-UNDO.
 
     _ENV_VARS:
-    DO WHILE(dictEnum:MoveNext()):
-      envVarName = STRING(dictEnum:Key).
-      envVarValue = STRING(dictEnum:Value).
+    DO WHILE(dictEnumerator:HasNext()):
+      DEFINE VARIABLE currentConfiguration AS IMapEntry NO-UNDO.
+      currentConfiguration = CAST(dictEnumerator:Next(), IMapEntry).
+      
+      envVarName = STRING(currentConfiguration:Key).
+      envVarValue = STRING(currentConfiguration:Value).
 
       IF (prefix <> ""
         AND NOT envVarName BEGINS prefix)
@@ -159,10 +166,10 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
       /*      MESSAGE envVarName "->" envVarValue.*/
       IF configurationDictionary:ContainsKey(envVarName) THEN DO:
-        configurationDictionary[envVarName] = envVarValue.
+        configurationDictionary:Put(envVarName, envVarValue).
       END.
       ELSE DO:
-        configurationDictionary:Add(envVarName, envVarValue).
+        configurationDictionary:Put(envVarName, envVarValue).
       END.
 
     END.

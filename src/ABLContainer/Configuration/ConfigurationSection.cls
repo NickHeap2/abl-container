@@ -1,6 +1,6 @@
 USING ABLContainer.Configuration.* FROM PROPATH.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
-USING System.Collections.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -24,14 +24,17 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
     configurationObject = configuration.
   END CONSTRUCTOR.
 
-  METHOD PUBLIC VOID Bind(characterList AS "System.Collections.Generic.List<CHARACTER>"):
+  METHOD PUBLIC VOID Bind(characterList AS StringCollection):
 
-    DEFINE VARIABLE sectionEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+    DEFINE VARIABLE sectionEnumerator AS IIterator NO-UNDO.
     sectionEnumerator = THIS-OBJECT:GetChildren().
     _CHILDREN:
-    DO WHILE(sectionEnumerator:MoveNext()):
+    DO WHILE(sectionEnumerator:HasNext()):
+      DEFINE VARIABLE nextValue AS IMapEntry NO-UNDO.
+      nextValue = CAST(sectionEnumerator:Next(), IMapEntry).
+      
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
-      configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
+      configurationSection = CAST(nextValue:Value, ConfigurationSection).
 
       /* is this a value node? */
       IF configurationSection:Value <> ? THEN DO:
@@ -57,17 +60,20 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
 
   END METHOD.
 
-  METHOD PUBLIC CHARACTER EXTENT GetArray():
-    DEFINE VARIABLE characterArray AS CHARACTER EXTENT NO-UNDO.
-    DEFINE VARIABLE characterList AS "System.Collections.Generic.List<CHARACTER>" NO-UNDO.
-    characterList = NEW "System.Collections.Generic.List<CHARACTER>"().
+  METHOD PUBLIC OpenEdge.Core.String EXTENT GetArray():
+    DEFINE VARIABLE characterArray AS OpenEdge.Core.String EXTENT NO-UNDO.
+    DEFINE VARIABLE characterList AS StringCollection NO-UNDO.
+    characterList = NEW StringCollection().
 
-    DEFINE VARIABLE sectionEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+    DEFINE VARIABLE sectionEnumerator AS IIterator NO-UNDO.
     sectionEnumerator = THIS-OBJECT:GetChildren().
     _CHILDREN:
-    DO WHILE(sectionEnumerator:MoveNext()):
+    DO WHILE(sectionEnumerator:HasNext()):
+      DEFINE VARIABLE nextValue AS IMapEntry NO-UNDO.
+      nextValue = CAST(sectionEnumerator:Next(), IMapEntry).
+
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
-      configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
+      configurationSection = CAST(nextValue:Value, ConfigurationSection).
 
       /* is this a value node? */
       IF configurationSection:Value <> ? THEN DO:
@@ -75,20 +81,23 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
       END.
     END.
     EXTENT(characterArray) = ?.
-    EXTENT(characterArray) = characterList:Count.
-    characterArray = characterList:ToArray().
+    EXTENT(characterArray) = characterList:Size.
+    characterArray = characterList:ToStringArray().
 
     RETURN characterArray.
   END METHOD.
 
   METHOD PUBLIC VOID Bind(bindObject AS System.Object):
 
-    DEFINE VARIABLE sectionEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+    DEFINE VARIABLE sectionEnumerator AS IIterator NO-UNDO.
     sectionEnumerator = THIS-OBJECT:GetChildren().
     _CHILDREN:
-    DO WHILE(sectionEnumerator:MoveNext()):
+    DO WHILE(sectionEnumerator:HasNext()):
+      DEFINE VARIABLE nextValue AS IMapEntry NO-UNDO.
+      nextValue = CAST(sectionEnumerator:Next(), IMapEntry).
+    
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
-      configurationSection = CAST(sectionEnumerator:Current:Value, ConfigurationSection).
+      configurationSection = CAST(nextValue:Value, ConfigurationSection).
 
       /* is this a value node? */
       IF configurationSection:Value <> ? THEN DO:
@@ -102,26 +111,29 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
     RETURN configurationObject:GetSection(THIS-OBJECT:Path + ":" + sectionName).
   END METHOD.
 
-  METHOD PUBLIC "System.Collections.Generic.Dictionary<character, System.Object>+Enumerator" GetChildren():
-    DEFINE VARIABLE childConfigurationSections AS "System.Collections.Generic.Dictionary<character, System.Object>" NO-UNDO.
-    DEFINE VARIABLE configurationSection       AS ConfigurationSection                                              NO-UNDO.
+  METHOD PUBLIC IIterator GetChildren():
+    DEFINE VARIABLE childConfigurationSections AS IMap                 NO-UNDO.
+    DEFINE VARIABLE configurationSection       AS ConfigurationSection NO-UNDO.
 
     DEFINE VARIABLE parentLevel                AS INTEGER                                                           NO-UNDO.
     DEFINE VARIABLE childLevel                 AS INTEGER                                                           NO-UNDO.
-    childConfigurationSections = NEW "System.Collections.Generic.Dictionary<character, System.Object>"().
+    childConfigurationSections = NEW Map().
 
     parentLevel = NUM-ENTRIES(THIS-OBJECT:Path, ":").
 
     DEFINE VARIABLE envVarName        AS CHARACTER                                                                NO-UNDO.
     DEFINE VARIABLE envVarValue       AS CHARACTER                                                                NO-UNDO.
-    DEFINE VARIABLE configurationEnum AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
+    DEFINE VARIABLE configurationEnum AS IIterator NO-UNDO.
 
     configurationEnum = configurationObject:GetChildren().
 
     _ENV_VARS:
-    DO WHILE(configurationEnum:MoveNext()):
-      envVarName = STRING(configurationEnum:Current:Key).
-      envVarValue = STRING(configurationEnum:Current:Value).
+    DO WHILE(configurationEnum:HasNext()):
+      DEFINE VARIABLE nextValue AS IMapEntry NO-UNDO.
+      nextValue = CAST(configurationEnum:Next(), IMapEntry).
+
+      envVarName = STRING(nextValue:Key).
+      envVarValue = STRING(nextValue:Value).
 
 /*      MESSAGE "CHECK->" + envVarName.*/
       /* get child sections */
@@ -138,7 +150,7 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
         END.
 
         /* add this child path if not already present */
-        IF NOT childConfigurationSections:ContainsKey(childPath) THEN DO:
+        IF NOT childConfigurationSections:ContainsKey(NEW OpenEdge.Core.String(childPath)) THEN DO:
           configurationSection = NEW ConfigurationSection(configurationObject).
           configurationSection:Key = ENTRY(NUM-ENTRIES(childPath, ":"), childPath, ":").
           configurationSection:Path = childPath.
@@ -154,12 +166,12 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
           /*          MESSAGE "ConfigurationSection".                  */
           /*          MESSAGE "    Key->" + configurationSection:Key.  */
           /*          MESSAGE "    Path->" + configurationSection:Path.*/
-          childConfigurationSections:Add(childPath, configurationSection).
+          childConfigurationSections:Put(NEW OpenEdge.Core.String(childPath), configurationSection).
         END.
       END.
     END.
 
-    RETURN childConfigurationSections:GetEnumerator().
+    RETURN childConfigurationSections:EntrySet:Iterator().
   END METHOD.
 
 END CLASS.

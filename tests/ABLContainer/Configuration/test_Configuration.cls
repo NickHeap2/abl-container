@@ -1,6 +1,7 @@
 USING ABLContainer.Configuration.* FROM PROPATH.
-USING Progress.Lang.*.
 USING OpenEdge.Core.Assert FROM PROPATH.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
+USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -61,12 +62,12 @@ CLASS ABLContainer.Configuration.test_Configuration:
   END METHOD.
 
   @Test.
-  METHOD PUBLIC VOID canReturnAnEnumerator(  ):
+  METHOD PUBLIC VOID canReturnAnIterator(  ):
 
-    DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
+    DEFINE VARIABLE configurationIterator AS IIterator NO-UNDO.
 
-    configurationEnumerator = configuration:GetChildren().
-    Assert:NotNull(configurationEnumerator).
+    configurationIterator = configuration:GetChildren().
+    Assert:NotNull(configurationIterator).
 
   END METHOD.
 

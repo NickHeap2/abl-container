@@ -1,25 +1,25 @@
 USING ABLContainer.Configuration.*.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
-USING System.Collections.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Configuration.Configuration:
 
-  DEFINE VARIABLE configurationDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>" NO-UNDO.
+  DEFINE VARIABLE configurationDictionary AS IStringStringMap NO-UNDO.
 
   DEFINE PUBLIC STATIC PROPERTY Current AS Configuration NO-UNDO
     GET.
     SET.
 
-  CONSTRUCTOR PUBLIC Configuration (configDictionary AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>"):
+  CONSTRUCTOR PUBLIC Configuration (configDictionary AS IStringStringMap):
     configurationDictionary = configDictionary.
 
   END CONSTRUCTOR.
 
-  METHOD PUBLIC "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" GetChildren():
+  METHOD PUBLIC IIterator GetChildren():
 
-    RETURN configurationDictionary:GetEnumerator().
+    RETURN configurationDictionary:EntrySet:Iterator().
   END METHOD.
 
   METHOD PUBLIC ConfigurationSection GetSection(sectionName AS CHARACTER):
@@ -29,14 +29,17 @@ CLASS ABLContainer.Configuration.Configuration:
     configurationSection:Key = ENTRY(NUM-ENTRIES(sectionName, ":"), sectionName, ":").
     configurationSection:Path = sectionName.
 
-    DEFINE VARIABLE configKey         AS CHARACTER             NO-UNDO.
-    DEFINE VARIABLE configValue       AS CHARACTER             NO-UNDO.
-    DEFINE VARIABLE configurationEnum AS IDictionaryEnumerator NO-UNDO.
-    configurationEnum = configurationDictionary:GetEnumerator().
+    DEFINE VARIABLE configKey               AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE configValue             AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE configurationIterator AS IIterator NO-UNDO.
+    configurationIterator = configurationDictionary:EntrySet:Iterator().
     _SECTIONS:
-    DO WHILE(configurationEnum:MoveNext()):
-      configKey = STRING(configurationEnum:Key).
-      configValue = STRING(configurationEnum:Value).
+    DO WHILE(configurationIterator:HasNext()):
+      DEFINE VARIABLE currentConfiguration AS IMapEntry NO-UNDO.
+      currentConfiguration = CAST(configurationIterator:Next(), IMapEntry).
+
+      configKey = currentConfiguration:Key:ToString().
+      configValue = currentConfiguration:Value:ToString().
 
       /*TODO - this should be equals? */
       IF configKey MATCHES sectionName THEN DO:
@@ -51,7 +54,8 @@ CLASS ABLContainer.Configuration.Configuration:
   METHOD PUBLIC CHARACTER Item (key AS CHARACTER):
 
     IF configurationDictionary:ContainsKey(key) THEN DO:
-      RETURN configurationDictionary[key].
+      
+      RETURN STRING(configurationDictionary:Get(key)).
     END.
     ELSE DO:
       RETURN ?.

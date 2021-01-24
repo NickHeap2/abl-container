@@ -1,6 +1,7 @@
 USING ABLContainer.Configuration.* FROM PROPATH.
-USING Progress.Lang.*.
 USING OpenEdge.Core.Assert FROM PROPATH.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
+USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -89,19 +90,22 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     configuration = configurationBuilder:Build().
     Assert:NotNull(configuration).
 
-    DEFINE VARIABLE configurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, CHARACTER>+Enumerator" NO-UNDO.
-    configurationEnumerator = configuration:GetChildren().
-    Assert:NotNull(configurationEnumerator).
+    DEFINE VARIABLE configurationIterator AS IIterator NO-UNDO.
+    configurationIterator = configuration:GetChildren().
+    Assert:NotNull(configurationIterator).
 
     DEFINE VARIABLE iChildCount AS INTEGER NO-UNDO.
     iChildCount = 0.
-    DO WHILE(configurationEnumerator:MoveNext()):
+    DO WHILE(configurationIterator:HasNext()):
+      DEFINE VARIABLE nextConfiguration AS IMapEntry NO-UNDO.
+      nextConfiguration = CAST(configurationIterator:Next(), IMapEntry).
+    
       iChildCount = iChildCount + 1.
 
       DEFINE VARIABLE settingKey AS CHARACTER NO-UNDO.
       DEFINE VARIABLE settingValue AS CHARACTER NO-UNDO.
-      settingKey = configurationEnumerator:Current:Key.
-      settingValue = configurationEnumerator:Current:Value.
+      settingKey = nextConfiguration:Key:ToString().
+      settingValue = nextConfiguration:Value:ToString().
       Assert:NotNullOrEmpty(settingKey).
       Assert:NotNullOrEmpty(settingValue).
 /*      MESSAGE settingKey "=" settingValue.*/
@@ -192,17 +196,20 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     argsConfigurationSection = configuration:GetSection("Serilog:WriteTo:1:Args").
     Assert:NotNull(argsConfigurationSection).
 
-    DEFINE VARIABLE argsConfigurationEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
-    argsConfigurationEnumerator = argsConfigurationSection:GetChildren().
-    Assert:NotNull(argsConfigurationEnumerator).
+    DEFINE VARIABLE argsConfigurationIterator AS IIterator NO-UNDO.
+    argsConfigurationIterator = argsConfigurationSection:GetChildren().
+    Assert:NotNull(argsConfigurationIterator).
 
     DEFINE VARIABLE iChildCount AS INTEGER NO-UNDO.
     iChildCount = 0.
-    DO WHILE(argsConfigurationEnumerator:MoveNext()):
+    DO WHILE(argsConfigurationIterator:HasNext()):
+      DEFINE VARIABLE nextArgsConfiguration AS IMapEntry NO-UNDO.
+      nextArgsConfiguration = CAST(argsConfigurationIterator:Next(), IMapEntry).
+    
       iChildCount = iChildCount + 1.
 
       DEFINE VARIABLE childSection0 AS ConfigurationSection NO-UNDO.
-      childSection0 = CAST(argsConfigurationEnumerator:Current:Value, ConfigurationSection).
+      childSection0 = CAST(nextArgsConfiguration:Value, ConfigurationSection).
       Assert:NotNull(childSection0).
 
       IF (childSection0:Key = "nodeUris") THEN DO:
@@ -249,17 +256,20 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     configurationSection0 = configuration:GetSection("ArrayTest:0").
     Assert:NotNull(configurationSection0).
 
-    DEFINE VARIABLE configurationEnumerator0 AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
-    configurationEnumerator0 = configurationSection0:GetChildren().
-    Assert:NotNull(configurationEnumerator0).
+    DEFINE VARIABLE configurationIterator0 AS IIterator NO-UNDO.
+    configurationIterator0 = configurationSection0:GetChildren().
+    Assert:NotNull(configurationIterator0).
 
     DEFINE VARIABLE iChildCount AS INTEGER NO-UNDO.
     iChildCount = 0.
-    DO WHILE(configurationEnumerator0:MoveNext()):
+    DO WHILE(configurationIterator0:HasNext()):
+      DEFINE VARIABLE nextArgsConfiguration0 AS IMapEntry NO-UNDO.
+      nextArgsConfiguration0 = CAST(configurationIterator0:Next(), IMapEntry).
+
       iChildCount = iChildCount + 1.
 
       DEFINE VARIABLE childSection0 AS ConfigurationSection NO-UNDO.
-      childSection0 = CAST(configurationEnumerator0:Current:Value, ConfigurationSection).
+      childSection0 = CAST(nextArgsConfiguration0:Value, ConfigurationSection).
       Assert:NotNull(childSection0).
 
       IF (childSection0:Key = "integerSetting") THEN DO:
@@ -278,16 +288,19 @@ CLASS ABLContainer.Configuration.test_ConfigurationBuilder:
     configurationSection1 = configuration:GetSection("ArrayTest:1").
     Assert:NotNull(configurationSection1).
 
-    DEFINE VARIABLE configurationEnumerator1 AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
-    configurationEnumerator1 = configurationSection1:GetChildren().
-    Assert:NotNull(configurationEnumerator1).
+    DEFINE VARIABLE configurationIterator1 AS IIterator NO-UNDO.
+    configurationIterator1 = configurationSection1:GetChildren().
+    Assert:NotNull(configurationIterator1).
 
     iChildCount = 0.
-    DO WHILE(configurationEnumerator1:MoveNext()):
+    DO WHILE(configurationIterator1:HasNext()):
+      DEFINE VARIABLE nextArgsConfiguration1 AS IMapEntry NO-UNDO.
+      nextArgsConfiguration1 = CAST(configurationIterator0:Next(), IMapEntry).
+
       iChildCount = iChildCount + 1.
 
       DEFINE VARIABLE childSection1 AS ConfigurationSection NO-UNDO.
-      childSection1 = CAST(configurationEnumerator1:Current:Value, ConfigurationSection).
+      childSection1 = CAST(nextArgsConfiguration1:Value, ConfigurationSection).
       Assert:NotNull(childSection1).
 
       IF (childSection1:Key = "integerSetting") THEN DO:
