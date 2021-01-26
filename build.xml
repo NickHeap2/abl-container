@@ -23,6 +23,7 @@
 
     <!-- propath set -->
     <path id="propath_source">
+        <pathelement path="psc/OpenEdge.Core.pl"/>
         <pathelement path="src"/>
     </path>
 
@@ -30,6 +31,7 @@
     <path id="propath_tests">
         <pathelement path="tools/ablunit/ABLUnitMods.pl"/>
         <pathelement path="tests"/>
+        <pathelement path="psc/OpenEdge.Core.pl"/>
         <pathelement path="src"/>
     </path>
 

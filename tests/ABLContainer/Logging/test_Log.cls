@@ -2,9 +2,10 @@ USING ABLContainer.Bootstrap.* FROM PROPATH.
 USING ABLContainer.Configuration.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
 USING OpenEdge.Core.Assert FROM PROPATH.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
-USING Serilog.Events.* FROM ASSEMBLY.
-USING System.Environment.* FROM ASSEMBLY.
+/*USING Serilog.Events.* FROM ASSEMBLY.*/
+/*USING System.Environment.* FROM ASSEMBLY.*/
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -38,12 +39,19 @@ CLASS ABLContainer.Logging.test_Log:
 
   @Test.
   METHOD PUBLIC VOID canLogWarningArray(  ):
-    DEFINE VARIABLE propertiesArray AS CLASS System.Array NO-UNDO.
-    propertiesArray = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 2).
-    propertiesArray:SetValue("Param1", 0).
-    propertiesArray:SetValue("Param2", 1).
+
+    DEFINE VARIABLE propertiesArray AS OpenEdge.Core.String EXTENT 2 NO-UNDO.
+/*    propertiesArray = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 2).*/
+/*    DEFINE VARIABLE propertiesArray AS Array NO-UNDO.*/
+/*    propertiesArray = NEW Array(2).*/
+
+    propertiesArray[1] = NEW OpenEdge.Core.String("Param1").
+    propertiesArray[2] = NEW OpenEdge.Core.String("Param2").
+/*    propertiesArray:Add(NEW OpenEdge.Core.String("Param1")).*/
+/*    propertiesArray:Add(NEW OpenEdge.Core.String("Param2")).*/
+    
     Log:Warning("Warning ~{Param1~} ~{Param2~}", propertiesArray).
-    DELETE OBJECT propertiesArray NO-ERROR.
+/*    DELETE OBJECT propertiesArray NO-ERROR.*/
 
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
     Assert:Equals("Warning ~{Param1~} ~{Param2~}", TestFormatter:LastLogEvent:MessageTemplate:Text).
@@ -64,10 +72,11 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
-    DEFINE VARIABLE propertiesArray AS CLASS System.Array NO-UNDO.
-    propertiesArray = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 2).
-    propertiesArray:SetValue("Param1", 0).
-    propertiesArray:SetValue("Param2", 1).
+    DEFINE VARIABLE propertiesArray AS Array NO-UNDO.
+/*    propertiesArray = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 2).*/
+    propertiesArray = NEW Array(2).
+    propertiesArray:Add(NEW OpenEdge.Core.String("Param1")).
+    propertiesArray:Add(NEW OpenEdge.Core.String("Param2")).
     Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~}", propertiesArray).
     DELETE OBJECT propertiesArray NO-ERROR.
 
@@ -158,7 +167,7 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogAnErrorWithAParam(  ):
 
-    Log:Error("Error ~{Param1~}", BOX("PARAM1")).
+    Log:Error("Error ~{Param1~}", NEW OpenEdge.Core.String("PARAM1")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
     Assert:Equals("Error ~{Param1~}", TestFormatter:LastLogEvent:MessageTemplate:Text).
 
@@ -173,7 +182,7 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogAnErrorWithTwoParams(  ):
 
-    Log:Error("Error ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Log:Error("Error ~{Param1~} ~{Param2~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
     Assert:Equals("Error ~{Param1~} ~{Param2~}", TestFormatter:LastLogEvent:MessageTemplate:Text).
 
@@ -191,7 +200,7 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithAParam(  ):
 
-    Log:Debug("Debug ~{Param1~}", BOX("PARAM1")).
+    Log:Debug("Debug ~{Param1~}", NEW OpenEdge.Core.String("PARAM1")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
     Assert:Equals("Debug ~{Param1~}", TestFormatter:LastLogEvent:MessageTemplate:Text).
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
@@ -205,28 +214,28 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithTwoParams(  ):
 
-    Log:Debug("Debug ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Log:Debug("Debug ~{Param1~} ~{Param2~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithThreeParams(  ):
 
-    Log:Debug("Debug ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+    Log:Debug("Debug ~{Param1~} ~{Param2~} ~{Param3~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogDebugInfoWithFourParams(  ):
 
-    Log:Debug("Debug ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4")).
+    Log:Debug("Debug ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3"), NEW OpenEdge.Core.String("PARAM4")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithAParam(  ):
 
-    Log:Information("Information ~{Param1~}", BOX("PARAM1")).
+    Log:Information("Information ~{Param1~}", NEW OpenEdge.Core.String("PARAM1")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
     Assert:Equals("Information ~{Param1~}", TestFormatter:LastLogEvent:MessageTemplate:Text).
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
@@ -240,42 +249,42 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogInformationWithTwoParams(  ):
 
-    Log:Information("Information ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Log:Information("Information ~{Param1~} ~{Param2~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithThreeParams(  ):
 
-    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithFourParams(  ):
 
-    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4")).
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3"), NEW OpenEdge.Core.String("PARAM4")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithFiveParams(  ):
 
-    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~} ~{Param5~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4"), BOX("PARAM5")).
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~} ~{Param5~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3"), NEW OpenEdge.Core.String("PARAM4"), NEW OpenEdge.Core.String("PARAM5")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogInformationWithSixParams(  ):
 
-    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~} ~{Param5~} ~{Param6~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3"), BOX("PARAM4"), BOX("PARAM5"), BOX("PARAM6")).
+    Log:Information("Information ~{Param1~} ~{Param2~} ~{Param3~} ~{Param4~} ~{Param5~} ~{Param6~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3"), NEW OpenEdge.Core.String("PARAM4"), NEW OpenEdge.Core.String("PARAM5"), NEW OpenEdge.Core.String("PARAM6")).
 
   END METHOD.
 
   @Test.
   METHOD PUBLIC VOID canLogAWarningWithAParam(  ):
 
-    Log:Warning("Warning ~{Param1~}", BOX("PARAM1")).
+    Log:Warning("Warning ~{Param1~}", NEW OpenEdge.Core.String("PARAM1")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
     Assert:Equals("Warning ~{Param1~}", TestFormatter:LastLogEvent:MessageTemplate:Text).
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
@@ -289,7 +298,7 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canLogAWarningWithTwoParams(  ):
 
-    Log:Warning("Warning ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Log:Warning("Warning ~{Param1~} ~{Param2~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
@@ -299,7 +308,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
-    Log:WarningAt(eventTime, "WarningAt ~{Param1~}", BOX("PARAM1")).
+    Log:WarningAt(eventTime, "WarningAt ~{Param1~}", NEW OpenEdge.Core.String("PARAM1")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
@@ -309,7 +318,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
-    Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
@@ -319,7 +328,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
-    Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+    Log:WarningAt(eventTime, "WarningAt ~{Param1~} ~{Param2~} ~{Param3~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
   END METHOD.
@@ -330,7 +339,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE lastLogEventEventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
-    Log:InformationAt(eventTime, "InformationAt ~{Param1~}", BOX("PARAM1")).
+    Log:InformationAt(eventTime, "InformationAt ~{Param1~}", NEW OpenEdge.Core.String("PARAM1")).
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
 
     lastLogEventEventTime = TestFormatter:LastLogEvent:Timestamp:DateTime.
@@ -350,7 +359,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
-    Log:InformationAt(eventTime, "InformationAt ~{Param1~} ~{Param2~}", BOX("PARAM1"), BOX("PARAM2")).
+    Log:InformationAt(eventTime, "InformationAt ~{Param1~} ~{Param2~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2")).
 
   END METHOD.
 
@@ -359,7 +368,7 @@ CLASS ABLContainer.Logging.test_Log:
     DEFINE VARIABLE eventTime AS DATETIME NO-UNDO.
     eventTime = ADD-INTERVAL(NOW, -3, "hours").
 
-    Log:InformationAt(eventTime, "InformationAt ~{Param1~} ~{Param2~} ~{Param3~}", BOX("PARAM1"), BOX("PARAM2"), BOX("PARAM3")).
+    Log:InformationAt(eventTime, "InformationAt ~{Param1~} ~{Param2~} ~{Param3~}", NEW OpenEdge.Core.String("PARAM1"), NEW OpenEdge.Core.String("PARAM2"), NEW OpenEdge.Core.String("PARAM3")).
 
   END METHOD.
 
@@ -501,9 +510,9 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canPushProperty(  ):
 
-    DEFINE VARIABLE testProperty AS System.IDisposable NO-UNDO.
+    DEFINE VARIABLE testProperty AS LogProperty NO-UNDO.
 
-    testProperty = Log:PushProperty("TestName", BOX("TestValue")).
+    testProperty = Log:PushProperty("TestName", NEW OpenEdge.Core.String("TestValue")).
     Log:Information("TEST INFORMATION").
     testProperty:Dispose().
 
@@ -534,13 +543,13 @@ CLASS ABLContainer.Logging.test_Log:
   @Test.
   METHOD PUBLIC VOID canPushTwoProperties(  ):
 
-    DEFINE VARIABLE testProperty1 AS System.IDisposable NO-UNDO.
-    DEFINE VARIABLE testProperty2 AS System.IDisposable NO-UNDO.
+    DEFINE VARIABLE testProperty1 AS LogProperty NO-UNDO.
+    DEFINE VARIABLE testProperty2 AS LogProperty NO-UNDO.
 
     DEFINE VARIABLE logEventPropertyValue AS Serilog.Events.LogEventPropertyValue NO-UNDO.
     DEFINE VARIABLE success AS LOGICAL NO-UNDO.
 
-    testProperty1 = Log:PushProperty("TestName1", BOX("TestValue1")).
+    testProperty1 = Log:PushProperty("TestName1", NEW OpenEdge.Core.String("TestValue1")).
     Log:Information("TEST INFORMATION 1").
     /* check message */
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
@@ -550,7 +559,7 @@ CLASS ABLContainer.Logging.test_Log:
     Assert:IsTrue(success).
     Assert:Equals("~"TestValue1~"", logEventPropertyValue:ToString()).
 
-    testProperty2 = Log:PushProperty("TestName2", BOX("TestValue2")).
+    testProperty2 = Log:PushProperty("TestName2", NEW OpenEdge.Core.String("TestValue2")).
     Log:Information("TEST INFORMATION 2").
     /* check message */
     Assert:NotNull(TestFormatter:LastLogEvent, "LastLogEvent").
@@ -580,11 +589,11 @@ CLASS ABLContainer.Logging.test_Log:
 
   @Test.
   METHOD PUBLIC VOID canResetProperties(  ):
-    DEFINE VARIABLE testProperty1 AS System.IDisposable NO-UNDO.
-    DEFINE VARIABLE testProperty2 AS System.IDisposable NO-UNDO.
+    DEFINE VARIABLE testProperty1 AS LogProperty NO-UNDO.
+    DEFINE VARIABLE testProperty2 AS LogProperty NO-UNDO.
 
-    testProperty1 = Log:PushProperty("TestName1", BOX("TestValue1")).
-    testProperty2 = Log:PushProperty("TestName2", BOX("TestValue2")).
+    testProperty1 = Log:PushProperty("TestName1", NEW OpenEdge.Core.String("TestValue1")).
+    testProperty2 = Log:PushProperty("TestName2", NEW OpenEdge.Core.String("TestValue2")).
 
     Log:Information("TEST INFORMATION 1").
     /* check message */

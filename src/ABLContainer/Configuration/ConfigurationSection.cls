@@ -4,7 +4,7 @@ USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
+CLASS ABLContainer.Configuration.ConfigurationSection INHERITS Progress.Lang.Object:
 
   DEFINE VARIABLE configurationObject AS Configuration NO-UNDO.
 
@@ -87,7 +87,7 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS System.Object:
     RETURN characterArray.
   END METHOD.
 
-  METHOD PUBLIC VOID Bind(bindObject AS System.Object):
+  METHOD PUBLIC VOID Bind(bindObject AS Progress.Lang.Object):
 
     DEFINE VARIABLE sectionEnumerator AS IIterator NO-UNDO.
     sectionEnumerator = THIS-OBJECT:GetChildren().

@@ -4,10 +4,6 @@ USING ABLContainer.DockerSwarm.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
 USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
-USING Serilog.* FROM ASSEMBLY.
-USING Serilog.Core.* FROM ASSEMBLY.
-USING Serilog.Events.* FROM ASSEMBLY.
-USING Serilog.Formatting.* FROM ASSEMBLY.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -61,11 +57,13 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     RETURN configuration.
 
     CATCH ae AS Progress.Lang.AppError :
-      MESSAGE ae:GetMessage(1).
+/*      MESSAGE ae:GetMessage(1).*/
+      LOG-MANAGER:WRITE-MESSAGE(ae:GetMessage(1), "ERROR").
       RETURN ?.
     END CATCH.
     CATCH e AS Progress.Lang.Error :
-      MESSAGE e:GetMessage(1).
+/*      MESSAGE e:GetMessage(1).*/
+      LOG-MANAGER:WRITE-MESSAGE(e:GetMessage(1), "ERROR").
       RETURN ?.
     END CATCH.
 
@@ -95,14 +93,14 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
     SetSettings(configuration).
 
-    Log:Information("OpenEdge version: ~{OpenEdgeVersion~}", BOX(PROVERSION(1))).
+    Log:Information("OpenEdge version: ~{OpenEdgeVersion~}", NEW OpenEdge.Core.String(PROVERSION(1))).
     /*TODO*//* can't do this on linux */
 /*    Log:Information(".net runtime version: ~{DotnetRuntimeVersion~}", System.Environment:Version).*/
 
-    Log:Information("ABLContainer version: ~{ABLContainerVersion~}", BOX(VersionNumber)).
-    Log:Information("StartupProcedure: ~{StartupProcedure~}", BOX(StartupProcedure)).
-    Log:Information("ProPath: ~{ProPath~}", BOX(PROPATH)).
-    Log:Information("UseProfiler: ~{UseProfiler~}", BOX(UseProfiler)).
+    Log:Information("ABLContainer version: ~{ABLContainerVersion~}", NEW OpenEdge.Core.String(VersionNumber)).
+    Log:Information("StartupProcedure: ~{StartupProcedure~}", NEW OpenEdge.Core.String(StartupProcedure)).
+    Log:Information("ProPath: ~{ProPath~}", NEW OpenEdge.Core.String(PROPATH)).
+    Log:Information("UseProfiler: ~{UseProfiler~}", NEW OpenEdge.Core.LogicalValue(UseProfiler)).
 
     IF (NOT ConnectToDatabases()) THEN RETURN.
 
@@ -123,7 +121,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       OR (SEARCH(StartupProcedure) = ?
       AND SEARCH(REPLACE(StartupProcedure, ".p", ".r")) = ?)
     THEN DO:
-      Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
+      Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", NEW OpenEdge.Core.String(StartupProcedure)).
       RETURN.
     END.
 
@@ -134,7 +132,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       RUN VALUE(StartupProcedure).
 
       CATCH er AS Progress.Lang.Error :
-        Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
+        Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", NEW OpenEdge.Core.String(STRING(er)), NEW OpenEdge.Core.String(er:GetMessage(1))).
         LEAVE _RUNNING_LOOP.
       END CATCH.
     END.
@@ -388,7 +386,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
     Log:Debug("Configuration").
     DO WHILE(configurationEnumerator:MoveNext()):
-      Log:Debug("  ~{Key~}=~{Value~}", BOX(configurationEnumerator:Current:Key), BOX(configurationEnumerator:Current:Value)).
+      Log:Debug("  ~{Key~}=~{Value~}", NEW OpenEdge.Core.String(configurationEnumerator:Current:Key), NEW OpenEdge.Core.String(configurationEnumerator:Current:Value)).
     END.*/
   END METHOD.
 
@@ -424,7 +422,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       IF (DatabaseConnectionAttempt()) THEN LEAVE _CONNECT_DATABASES.
 
       /* incremental pause up to the limit */
-      Log:Information("Pausing ~{PauseSeconds~} seconds for databases to become available...", BOX(connectRetrySeconds)).
+      Log:Information("Pausing ~{PauseSeconds~} seconds for databases to become available...", NEW OpenEdge.Core.Integer(connectRetrySeconds)).
       PAUSE connectRetrySeconds NO-MESSAGE.
       connectRetrySeconds = connectRetrySeconds * 2.
       IF connectRetrySeconds > DatabaseRetryMaxSeconds THEN DO:
@@ -433,7 +431,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       /* limit the max attempts? */
       IF DatabaseRetryMaxAttempts > 0 THEN DO:
         IF connectRetryAttempt > DatabaseRetryMaxAttempts THEN DO:
-          Log:Error("Databases not connected after ~{ConnectionAttempts~} attempts!", BOX(connectRetryAttempt)).
+          Log:Error("Databases not connected after ~{ConnectionAttempts~} attempts!", NEW OpenEdge.Core.Integer(connectRetryAttempt)).
           RETURN FALSE.
         END.
 
@@ -477,13 +475,13 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         ENTRY(passwordIndex, redactedDatabaseConnectionString, " ") = FILL("*", LENGTH(ENTRY(passwordIndex, redactedDatabaseConnectionString, " "))).
       END.
 
-      Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(redactedDatabaseConnectionString)).
+      Log:Information("Connecting to database with connection string (~{ConnectionString~})...", NEW OpenEdge.Core.String(redactedDatabaseConnectionString)).
       DO ON ERROR UNDO, LEAVE
          ON STOP UNDO, LEAVE:
         CONNECT VALUE(databaseConnectionString) NO-ERROR.
       END.
       IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
-        Log:Error("ERROR: Couldn't connect to database! [~{ErrorMessage~}]", BOX(ERROR-STATUS:GET-MESSAGE(1))).
+        Log:Error("ERROR: Couldn't connect to database! [~{ErrorMessage~}]", NEW OpenEdge.Core.String(ERROR-STATUS:GET-MESSAGE(1))).
         RETURN FALSE.
       END.
     END. /*_CONNECT_DATABASE*/

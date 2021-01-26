@@ -1,4 +1,5 @@
 USING ABLContainer.Configuration.* FROM PROPATH.
+USING ABLContainer.Logging.* FROM PROPATH.
 USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
 
@@ -16,7 +17,6 @@ CLASS ABLContainer.Configuration.EnvVars:
   END METHOD.
 
   METHOD STATIC CHARACTER GetEnvVar(varName AS CHARACTER):
-
     DEFINE VARIABLE importString AS CHARACTER FORMAT "X(1000)" NO-UNDO.
     
     INPUT STREAM envVarStream THROUGH VALUE("set " + varName).

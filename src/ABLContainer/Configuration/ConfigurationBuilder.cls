@@ -3,7 +3,6 @@ USING ABLContainer.Util.* FROM PROPATH.
 USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Json.ObjectModel.*.
 USING Progress.Lang.*.
-/*USING System.IO.* FROM ASSEMBLY.*/
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -56,10 +55,10 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
 
   METHOD PUBLIC ConfigurationBuilder AddKeyPerFile(directoryName AS CHARACTER, optional AS LOGICAL):
 
-    IF (NOT System.IO.Path:IsPathRooted(directoryName))
+    IF (NOT FileSystem:DirectoryIsRooted(directoryName))
       AND basePath <> ""
     THEN DO:
-      directoryName = System.IO.Path:Combine(basePath, directoryName).
+      directoryName = FileSystem:CombinePaths(basePath, directoryName).
     END.
 
     IF NOT FileSystem:DirectoryExists(directoryName) THEN DO:
@@ -85,8 +84,12 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       THEN DO:
         NEXT _FILES.
       END.
-
-      fileContents = System.IO.File:ReadAllText(filePath).
+      /*read the file*/
+      DEFINE VARIABLE fileContents-pointer AS MEMPTR NO-UNDO.
+      
+      COPY-LOB FROM FILE filePath TO fileContents-pointer.
+      fileContents = GET-STRING(fileContents-pointer,1).
+      SET-SIZE(fileContents-pointer) = 0.
 
       settingName = REPLACE(fileName, "__", ":").
 
@@ -107,7 +110,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
     DEFINE VARIABLE appsettingsObject AS JsonObject        NO-UNDO.
 
     IF basePath <> "" THEN DO:
-      fileName = System.IO.Path:Combine(basePath, fileName).
+      fileName = FileSystem:CombinePaths(basePath, fileName).
     END.
 
     IF NOT FileSystem:FileExists(fileName) THEN DO:
