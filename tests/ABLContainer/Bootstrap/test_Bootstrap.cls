@@ -1,6 +1,7 @@
 USING ABLContainer.Bootstrap.* FROM PROPATH.
 USING ABLContainer.Configuration.* FROM PROPATH.
 USING OpenEdge.Core.Assert FROM PROPATH.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
@@ -12,6 +13,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
   @Setup.
   METHOD PUBLIC VOID setUp(  ):
     previousPropath = PROPATH.
+    EnvVars:ClearEnvVars().
   END METHOD.
 
   @Test.
@@ -26,8 +28,8 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
     DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
 
-    Bootstrap:ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
-    Bootstrap:LogicalDatabaseNames = NEW "System.Collections.Generic.List<character>"().
+    Bootstrap:ConnectionStrings = NEW StringCollection().
+    Bootstrap:LogicalDatabaseNames = NEW StringCollection().
 
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
@@ -39,7 +41,7 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     Assert:NotNull(configuration).
 
     Bootstrap:SetSettings(configuration).
-    Assert:Equals(Bootstrap:ConnectionStrings:Count, 0).
+    Assert:Equals(Bootstrap:ConnectionStrings:Size, 0).
 
   END METHOD.
 
@@ -47,8 +49,8 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
     DEFINE VARIABLE configurationBuilder AS ConfigurationBuilder NO-UNDO.
     DEFINE VARIABLE configuration        AS Configuration        NO-UNDO.
 
-    Bootstrap:ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
-    Bootstrap:LogicalDatabaseNames = NEW "System.Collections.Generic.List<character>"().
+    Bootstrap:ConnectionStrings = NEW StringCollection().
+    Bootstrap:LogicalDatabaseNames = NEW StringCollection().
 
     configurationBuilder = NEW ConfigurationBuilder().
     configurationBuilder
@@ -59,13 +61,17 @@ CLASS ABLContainer.Bootstrap.test_Bootstrap:
 
     Bootstrap:SetSettings(configuration).
 
-    Assert:Equals(Bootstrap:ConnectionStrings:Count, 2).
+    Assert:Equals(Bootstrap:ConnectionStrings:Size, 2).
+
+    DEFINE VARIABLE connectionStringIterator AS IIterator NO-UNDO.
+    connectionStringIterator = Bootstrap:ConnectionStrings:Iterator().
+    Assert:NotNull(connectionStringIterator).
 
     DEFINE VARIABLE connectionString AS CHARACTER NO-UNDO.
-    connectionString = Bootstrap:ConnectionStrings:Item[0].
+    connectionString = CAST(connectionStringIterator:Next(), OpenEdge.Core.String):ToString().
     Assert:Equals("-ct 1 -db database1 -H localhost -S 10660 -ld database1 -U username -P password", connectionString).
 
-    connectionString = Bootstrap:ConnectionStrings:Item[1].
+    connectionString = CAST(connectionStringIterator:Next(), OpenEdge.Core.String):ToString().
     Assert:Equals("-ct 1 -db database2 -H localhost -S 10661 -ld database2 -U username -P password -B 1000 -Mm 3000", connectionString).
 
   END METHOD.

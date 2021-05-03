@@ -1,38 +1,28 @@
 USING ABLContainer.DynamicObjects.* FROM PROPATH.
-USING Progress.Lang.*.
-USING Serilog.Core.* FROM ASSEMBLY.
-USING Serilog.Events.* FROM ASSEMBLY.
-USING System.* FROM ASSEMBLY.
+USING ABLContainer.Logging.* FROM PROPATH.
+USING Progress.Lang.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.Logging.DynamicObjectsLogger IMPLEMENTS ILogEventEnricher :
+CLASS ABLContainer.Logging.DynamicObjectsLogger IMPLEMENTS ILogEnricher:
 
-  METHOD PUBLIC VOID Enrich (logEvent AS CLASS LogEvent, propertyFactory AS CLASS ILogEventPropertyFactory):
+  METHOD PUBLIC VOID GetProperties(  ):
 
     DEFINE VARIABLE dynamicObjectCounts AS DynamicObjectCounts NO-UNDO.
 
     dynamicObjectCounts = ABLContainer.DynamicObjects.DynamicObjectCounts:GetDynamicObjectCounts().
 
-    DEFINE VARIABLE logEventProperty AS LogEventProperty NO-UNDO.
+    Log:PushProperty("DatasetCount", NEW OpenEdge.Core.Integer(dynamicObjectCounts:DatasetCount)).
 
-    logEventProperty = propertyFactory:CreateProperty("DatasetCount", dynamicObjectCounts:DatasetCount, FALSE).
-    logEvent:AddOrUpdateProperty(logEventProperty).
+    Log:PushProperty("DataSourceCount", NEW OpenEdge.Core.Integer(dynamicObjectCounts:DataSourceCount)).
 
-    logEventProperty = propertyFactory:CreateProperty("DataSourceCount", dynamicObjectCounts:DataSourceCount, FALSE).
-    logEvent:AddOrUpdateProperty(logEventProperty).
+    Log:PushProperty("BufferCount", NEW OpenEdge.Core.Integer(dynamicObjectCounts:BufferCount)).
 
-    logEventProperty = propertyFactory:CreateProperty("BufferCount", dynamicObjectCounts:BufferCount, FALSE).
-    logEvent:AddOrUpdateProperty(logEventProperty).
+    Log:PushProperty("ProcedureCount", NEW OpenEdge.Core.Integer(dynamicObjectCounts:ProcedureCount)).
 
-    logEventProperty = propertyFactory:CreateProperty("ProcedureCount", dynamicObjectCounts:ProcedureCount, FALSE).
-    logEvent:AddOrUpdateProperty(logEventProperty).
+    Log:PushProperty("QueryCount", NEW OpenEdge.Core.Integer(dynamicObjectCounts:QueryCount)).
 
-    logEventProperty = propertyFactory:CreateProperty("QueryCount", dynamicObjectCounts:QueryCount, FALSE).
-    logEvent:AddOrUpdateProperty(logEventProperty).
-
-    logEventProperty = propertyFactory:CreateProperty("ObjectCount", dynamicObjectCounts:ObjectCount, FALSE).
-    logEvent:AddOrUpdateProperty(logEventProperty).
+    Log:PushProperty("ObjectCount", NEW OpenEdge.Core.Integer(dynamicObjectCounts:ObjectCount)).
 
   END METHOD.
 

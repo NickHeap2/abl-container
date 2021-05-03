@@ -1,3 +1,4 @@
+USING OpenEdge.Core.Collections.* FROM PROPATH.
 USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
@@ -16,7 +17,7 @@ CLASS ABLContainer.Configuration.mock_BindingObject INHERITS System.Object:
     GET.
     SET.
 
-  DEFINE PUBLIC PROPERTY SpaceValues AS "System.Collections.Generic.List<CHARACTER>" NO-UNDO
+  DEFINE PUBLIC PROPERTY SpaceValues AS StringCollection NO-UNDO
     GET.
     SET.
 
@@ -27,7 +28,7 @@ CLASS ABLContainer.Configuration.mock_BindingObject INHERITS System.Object:
 
   CONSTRUCTOR PUBLIC mock_BindingObject (  ):
 
-    SpaceValues = NEW "System.Collections.Generic.List<CHARACTER>"().
+    SpaceValues = NEW StringCollection().
 
   END CONSTRUCTOR.
 

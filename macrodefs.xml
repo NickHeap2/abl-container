@@ -49,6 +49,7 @@
 <macrodef name="getoelocations">
     <attribute name="isWindows" default="isWindows"/>
     <attribute name="isUnix" default="isUnix"/>
+    <attribute name="dlc12" default="env.OEDLC12"/>
     <attribute name="dlc11" default="env.OEDLC11"/>
     <attribute name="dlc10" default="env.OEDLC10"/>
     <attribute name="dlc10-64" default="env.OEDLC10-64"/>
@@ -56,29 +57,42 @@
    <sequential>
         <!-- set oe11 location -->
         <!-- unix -->
-        <condition property="@{dlc11}" value="/usr/dlc">
+        <condition property="@{dlc12}" value="/usr/dlc">
             <and>
                 <isset property="@{isUnix}"/>
                 <available file="/usr/dlc" type="dir"/>
             </and>
         </condition>
-        <!-- windows -->
-        <condition property="@{dlc11}" value="C:\\Progress\\OpenEdge">
+        <condition property="@{dlc12}" value="C:\\Progress\\OpenEdge">
             <and>
                 <isset property="@{isWindows}"/>
                 <available file="C:\\Progress\\OpenEdge" type="dir"/>
             </and>
         </condition>
-        <condition property="@{dlc11}" value="C:\\Progressx86\\OpenEdge">
+        <condition property="@{dlc12}" value="C:\\Progressx86\\OpenEdge">
             <and>
                 <isset property="@{isWindows}"/>
                 <available file="C:\\Progressx86\\OpenEdge" type="dir"/>
             </and>
         </condition>
+        <!-- set oe11 location -->
+        <!-- windows -->
         <condition property="@{dlc11}" value="c:\\oe11">
             <and>
                 <isset property="@{isWindows}"/>
                 <available file="c:\\oe11" type="dir"/>
+            </and>
+        </condition>
+        <condition property="@{dlc11}" value="D:\\FromC\\DLC115">
+            <and>
+                <isset property="@{isWindows}"/>
+                <available file="D:\\FromC\\DLC115" type="dir"/>
+            </and>
+        </condition>
+        <condition property="@{dlc11}" value="C:\\DLC115">
+            <and>
+                <isset property="@{isWindows}"/>
+                <available file="C:\\DLC115" type="dir"/>
             </and>
         </condition>
 
@@ -531,6 +545,8 @@
     <attribute name="databasesid"/>
     <attribute name="propathid"/>
     <attribute name="filesetid"/>
+    <attribute name="noCoverage"  default="false"/>
+    <attribute name="noSonar"  default="false"/>
 
     <attribute name="assembliesDir" default=""/>
     <attribute name="noTTYAssemblies" default="false"/>
@@ -589,7 +605,7 @@
                  cpstream="1252"
                  cpinternal="1252"
 
-                 writeLog="true">
+                 writeLog="false">
 
             <Profiler enabled="true"
                       outputFile="profile/profile.prof"
@@ -600,8 +616,12 @@
             <Option if:true="${addAssemblies}" name="-assemblies" value="@{assembliesDir}"/>
             <Option name="-T" value="@{tempDir}"/>
             <Option name="-reusableObjects" value="0"/>
+            <Option name="-clientlog" value="trace.log"/>
+            <!-- <Option name="-logentrytypes" value="DynObjects.*"/> -->  
+            <Option name="-logentrytypes" value="4GLTrace"/>
+            <Option name="-logginglevel" value="4"/>
 
-            <DBConnectionSet refid="@{databasesid}" />
+            <DBConnectionSet if:set="refid" refid="@{databasesid}" />
 
             <propath refid="@{propathid}" />
 
@@ -609,15 +629,16 @@
         </ABLUnit>
 
         <!-- convert to format used by sonarqube -->
-        <xslt in="@{destDir}/results.xml"
+        <xslt unless:true="@{noSonar}"
+              in="@{destDir}/results.xml"
               out="@{destDir}/sonar-results.xml"
               style="tools/sonar-results.xsl" />
 
         <!-- convert coverage to be usable in report generation -->
-        <coverageconverter profilerInputFile="profile/profile.prof"
+        <coverageconverter unless:true="@{noCoverage}"
+                           profilerInputFile="profile/profile.prof"
                            coberturaOutputFile="@{destDir}/cobertura-coverage.xml"
                            genericCoverageOutputFile="@{destDir}/profiler.xml"/>
-
     </sequential>
 </macrodef>
 
@@ -630,12 +651,13 @@
     <sequential>
         <exec executable="dotnet"
               failonerror="true">
-            <arg value="tools\ABLProfilerConverter.dll"/>  
+            <arg value="tools\ABLProfilerConverter.dll"/>
             <arg value="@{profilerInputFile}"/>
             <arg value="@{coberturaOutputFile}"/>
             <arg value="@{genericCoverageOutputFile}"/>
         </exec>
     </sequential>
+
 </macrodef>
 
 <macrodef name="coveragereport">
@@ -645,8 +667,7 @@
 
     <sequential>
         <local name="reportExecutable-full-path"/>
-        <property name="reportExecutable-full-path"
-               location="@{reportExecutable}"/>
+        <property name="reportExecutable-full-path" location="@{reportExecutable}"/>
 
         <exec executable="${reportExecutable-full-path}"
               failonerror="true">
@@ -799,7 +820,7 @@
                 <Option if:true="${addAssemblies}" name="-assemblies" value="@{assembliesDir}"/>
                 <Option name="-T" value="@{tempDir}"/>
 
-                <DBConnectionSet refid="@{databasesid}" />
+                <DBConnectionSet if:set="refid" refid="@{databasesid}" />
 
                 <propath refid="@{propathid}" />
 

@@ -2,22 +2,18 @@ USING ABLContainer.Bootstrap.* FROM PROPATH.
 USING ABLContainer.Configuration.* FROM PROPATH.
 USING ABLContainer.DockerSwarm.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
-USING Progress.Lang.*.
-USING Serilog.* FROM ASSEMBLY.
-USING Serilog.Core.* FROM ASSEMBLY.
-USING Serilog.Events.* FROM ASSEMBLY.
-USING Serilog.Formatting.* FROM ASSEMBLY.
-USING System.Collections.Generic.* FROM ASSEMBLY.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
+USING Progress.Lang.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Bootstrap.Bootstrap:
 
-  DEFINE PUBLIC STATIC PROPERTY ConnectionStrings AS "System.Collections.Generic.List<character>" NO-UNDO
+  DEFINE PUBLIC STATIC PROPERTY ConnectionStrings AS StringCollection NO-UNDO
     GET.
     SET.
 
-  DEFINE PUBLIC STATIC PROPERTY LogicalDatabaseNames AS "System.Collections.Generic.List<character>" NO-UNDO
+  DEFINE PUBLIC STATIC PROPERTY LogicalDatabaseNames AS StringCollection NO-UNDO
     GET.
     SET.
 
@@ -61,11 +57,13 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     RETURN configuration.
 
     CATCH ae AS Progress.Lang.AppError :
-      MESSAGE ae:GetMessage(1).
+      MESSAGE ae:GetMessage(1) VIEW-AS ALERT-BOX.
+/*      LOG-MANAGER:WRITE-MESSAGE(ae:GetMessage(1), "ERROR") NO-ERROR.*/
       RETURN ?.
     END CATCH.
     CATCH e AS Progress.Lang.Error :
-      MESSAGE e:GetMessage(1).
+      MESSAGE ae:GetMessage(1) VIEW-AS ALERT-BOX.
+/*      LOG-MANAGER:WRITE-MESSAGE(e:GetMessage(1), "ERROR") NO-ERROR.*/
       RETURN ?.
     END CATCH.
 
@@ -73,35 +71,37 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
   METHOD PUBLIC STATIC VOID SetSettings(configuration AS Configuration):
     /* configure logging first */
-    SetSeriLogSettings(configuration).
+    SetLoggingSettings(configuration).
 
     SetOpenEdgeSettings(configuration).
 
   END METHOD.
 
   METHOD PUBLIC STATIC VOID Start(environment AS CHARACTER):
-    ConnectionStrings = NEW "System.Collections.Generic.List<character>"().
-    LogicalDatabaseNames = NEW "System.Collections.Generic.List<character>"().
-    VersionNumber = "1.0.2".
+    ConnectionStrings = NEW StringCollection().
+    LogicalDatabaseNames = NEW StringCollection().
+    VersionNumber = "1.1.1".
     DatabaseRetryMaxSeconds = 60.
     DatabaseRetryMaxAttempts = 0.
 
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = BuildConfiguration(environment).
     IF NOT VALID-OBJECT(configuration) THEN DO:
-      MESSAGE "Configuration could not be loaded!".
+/*      MESSAGE "Configuration could not be loaded!".*/
+      MESSAGE "Configuration could not be loaded!" VIEW-AS ALERT-BOX.
       RETURN.
     END.
 
     SetSettings(configuration).
 
-    Log:Information("OpenEdge version: ~{OpenEdgeVersion~}", BOX(PROVERSION(1))).
-    Log:Information(".net runtime version: ~{DotnetRuntimeVersion~}", System.Environment:Version).
+    Log:Information("OpenEdge version: ~{OpenEdgeVersion~}", NEW OpenEdge.Core.String(PROVERSION(1))).
+    /*TODO*//* can't do this on linux */
+/*    Log:Information(".net runtime version: ~{DotnetRuntimeVersion~}", System.Environment:Version).*/
 
-    Log:Information("ABLContainer version: ~{ABLContainerVersion~}", BOX(VersionNumber)).
-    Log:Information("StartupProcedure: ~{StartupProcedure~}", BOX(StartupProcedure)).
-    Log:Information("ProPath: ~{ProPath~}", BOX(PROPATH)).
-    Log:Information("UseProfiler: ~{UseProfiler~}", BOX(UseProfiler)).
+    Log:Information("ABLContainer version: ~{ABLContainerVersion~}", NEW OpenEdge.Core.String(VersionNumber)).
+    Log:Information("StartupProcedure: ~{StartupProcedure~}", NEW OpenEdge.Core.String(StartupProcedure)).
+    Log:Information("ProPath: ~{ProPath~}", NEW OpenEdge.Core.String(PROPATH)).
+    Log:Information("UseProfiler: ~{UseProfiler~}", NEW OpenEdge.Core.LogicalValue(UseProfiler)).
 
     IF (NOT ConnectToDatabases()) THEN RETURN.
 
@@ -122,7 +122,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       OR (SEARCH(StartupProcedure) = ?
       AND SEARCH(REPLACE(StartupProcedure, ".p", ".r")) = ?)
     THEN DO:
-      Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", BOX(StartupProcedure)).
+      Log:Error("ERROR: startup procedure (~{StartupProcedure~}) not found!", NEW OpenEdge.Core.String(StartupProcedure)).
       RETURN.
     END.
 
@@ -133,7 +133,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       RUN VALUE(StartupProcedure).
 
       CATCH er AS Progress.Lang.Error :
-        Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", BOX(STRING(er)), BOX(er:GetMessage(1))).
+        Log:Error("Fatal error (~{ErrorType~}) [~{ErrorMessage~}].", NEW OpenEdge.Core.String(STRING(er)), NEW OpenEdge.Core.String(er:GetMessage(1))).
         LEAVE _RUNNING_LOOP.
       END CATCH.
     END.
@@ -147,7 +147,27 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
   END METHOD.
 
+  METHOD PUBLIC STATIC VOID SetLoggingSettings(configuration AS Configuration):
+
+    DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
+    dockerSwarmDetails = GetSwarmDetails().
+
+    DEFINE VARIABLE logSection AS ConfigurationSection NO-UNDO.
+    logSection = configuration:GetSection("Logging").
+    IF NOT VALID-OBJECT(logSection) THEN DO:
+      RETURN.
+    END.
+    
+    logSection:Bind("ABLContainer.Logging.Log").
+
+  END METHOD.
+
   METHOD PUBLIC STATIC VOID SetSeriLogSettings(configuration AS Configuration):
+
+    DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
+    dockerSwarmDetails = GetSwarmDetails().
+
+  /*TODO*//***
     DEFINE VARIABLE addTestingLogger AS LOGICAL NO-UNDO.
     DEFINE VARIABLE addPerformanceLogging AS LOGICAL NO-UNDO.
     DEFINE VARIABLE addDynamicObjectLogging AS LOGICAL NO-UNDO.
@@ -160,14 +180,11 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
     IF NOT VALID-OBJECT(ABLContainer.Configuration.Configuration:Current) THEN UNDO, THROW NEW AppError("No current configuration is set!").
 
-    DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
-    dockerSwarmDetails = GetSwarmDetails().
-
     DEFINE VARIABLE loggerConfiguration AS LoggerConfiguration NO-UNDO.
     loggerConfiguration = NEW loggerConfiguration().
 
-    DEFINE VARIABLE keyvaluepairs AS "IList<System.Collections.Generic.KeyValuePair<character, character>>" NO-UNDO.
-    keyvaluepairs = NEW "List<System.Collections.Generic.KeyValuePair<character, character>>"().
+    DEFINE VARIABLE keyvaluepairs AS StringStringMap NO-UNDO.
+    keyvaluepairs = NEW StringStringMap().
 
     DEFINE VARIABLE addLogContext AS LOGICAL NO-UNDO.
 
@@ -192,7 +209,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
           DEFINE VARIABLE cLastPart AS CHARACTER NO-UNDO.
           cLastPart = SUBSTRING(usingSection:Value, R-INDEX(usingSection:Value, ".") + 1).
-          keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("using:" + cLastPart, usingSection:Value)).
+          keyvaluepairs:Put("using:" + cLastPart, usingSection:Value).
         END. /*_USING*/
       END.
       ELSE IF configurationSection:Key = "MinimumLevel" THEN DO:
@@ -204,7 +221,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           minLevelSection = CAST(minLevelEnumerator:Current:Value, ConfigurationSection).
 
           IF minLevelSection:Key = "Default" THEN DO:
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("minimum-level", minLevelSection:Value)).
+            keyvaluepairs:Put("minimum-level", minLevelSection:Value).
           END.
           ELSE IF minLevelSection:Key = "Override" THEN DO:
             DEFINE VARIABLE overrideEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
@@ -214,7 +231,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
               DEFINE VARIABLE overrideSection AS ConfigurationSection NO-UNDO.
               overrideSection = CAST(overrideEnumerator:Current:Value, ConfigurationSection).
 
-              keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("minimum-level:override:" + overrideSection:Key, overrideSection:Value)).
+              keyvaluepairs:Put("minimum-level:override:" + overrideSection:Key, overrideSection:Value).
             END.
           END.
         END.
@@ -241,7 +258,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
             NEXT _WRITETO.
           END.
 
-          keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<System.String, System.String>"("write-to:" + writeToName, "")).
+          keyvaluepairs:Put("write-to:" + writeToName, "").
 
           DEFINE VARIABLE writeToSettingEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
           writeToSettingEnumerator = writeToSection:GetChildren().
@@ -260,7 +277,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
                 argsSection = CAST(argsEnumerator:Current:Value, ConfigurationSection).
 
                 /*                MESSAGE SUBSTITUTE("argsSection &1->&2", argsSection:Key, argsSection:Value).*/
-                keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("write-to:" + writeToName + "." + argsSection:Key, argsSection:Value)).
+                keyvaluepairs:Put("write-to:" + writeToName + "." + argsSection:Key, argsSection:Value).
               END. /*_ARGS*/
             END.
           END. /*_WRITETO_SETTINGS*/
@@ -277,7 +294,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           /*          MESSAGE SUBSTITUTE("Enrich &1->&2", enrichSection:Key, enrichSection:Value).*/
 
           IF enrichSection:Value = "WithMachineName" THEN DO:
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:MachineName", System.Environment:MachineName)).
+            keyvaluepairs:Put("enrich:with-property:MachineName", System.Environment:MachineName).
           END.
           ELSE IF enrichSection:Value = "FromLogContext" THEN DO:
             addLogContext = TRUE.
@@ -290,39 +307,39 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           END.
           ELSE IF enrichSection:Value = "WithSwarmNodeID" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmNodeID", dockerSwarmDetails:Node:ID, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmNodeID", dockerSwarmDetails:Node:ID)).
+            keyvaluepairs:Put("enrich:with-property:SwarmNodeID", dockerSwarmDetails:Node:ID).
           END.
           ELSE IF enrichSection:Value = "WithSwarmNodeHostname" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmNodeHostname", dockerSwarmDetails:Node:Hostname, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmNodeHostname", dockerSwarmDetails:Node:Hostname)).
+            keyvaluepairs:Put("enrich:with-property:SwarmNodeHostname", dockerSwarmDetails:Node:Hostname).
           END.
           ELSE IF enrichSection:Value = "WithSwarmServiceID" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmServiceID", dockerSwarmDetails:Service:ID, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmServiceID", dockerSwarmDetails:Service:ID)).
+            keyvaluepairs:Put("enrich:with-property:SwarmServiceID", dockerSwarmDetails:Service:ID).
           END.
           ELSE IF enrichSection:Value = "WithSwarmServiceName" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmServiceName", dockerSwarmDetails:Service:Name, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmServiceName", dockerSwarmDetails:Service:Name)).
+            keyvaluepairs:Put("enrich:with-property:SwarmServiceName", dockerSwarmDetails:Service:Name).
           END.
           ELSE IF enrichSection:Value = "WithSwarmServiceLabels" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmServiceLabels", dockerSwarmDetails:Service:Labels, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmServiceLabels", dockerSwarmDetails:Service:Labels)).
+            keyvaluepairs:Put("enrich:with-property:SwarmServiceLabels", dockerSwarmDetails:Service:Labels).
           END.
           ELSE IF enrichSection:Value = "WithSwarmTaskID" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmTaskID", dockerSwarmDetails:Task:ID, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmTaskID", dockerSwarmDetails:Task:ID)).
+            keyvaluepairs:Put("enrich:with-property:SwarmTaskID", dockerSwarmDetails:Task:ID).
           END.
           ELSE IF enrichSection:Value = "WithSwarmTaskName" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmTaskName", dockerSwarmDetails:Task:Name, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmTaskName", dockerSwarmDetails:Task:Name)).
+            keyvaluepairs:Put("enrich:with-property:SwarmTaskName", dockerSwarmDetails:Task:Name).
           END.
           ELSE IF enrichSection:Value = "WithSwarmTaskSlot" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("SwarmTaskSlot", dockerSwarmDetails:Task:Slot, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:SwarmTaskSlot", dockerSwarmDetails:Task:Slot)).
+            keyvaluepairs:Put("enrich:with-property:SwarmTaskSlot", dockerSwarmDetails:Task:Slot).
           END.
           ELSE IF enrichSection:Value = "WithProcessId" THEN DO:
 /*            Serilog.Context.LogContext:PushProperty("ProcessId", System.Diagnostics.Process:GetCurrentProcess():Id, FALSE).*/
-            keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:ProcessId", STRING(System.Diagnostics.Process:GetCurrentProcess():Id))).
+            keyvaluepairs:Put("enrich:with-property:ProcessId", STRING(System.Diagnostics.Process:GetCurrentProcess():Id)).
           END.
         END. /*_ENRICH*/
       END.
@@ -335,7 +352,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
           propertySection = CAST(propertyEnumerator:Current:Value, ConfigurationSection).
           /*          MESSAGE SUBSTITUTE("Properties &1->&2", usingSection:Key, usingSection:Value).*/
 
-          keyvaluepairs:Add(NEW "System.Collections.Generic.KeyValuePair<character, character>"("enrich:with-property:" + propertySection:Key, propertySection:Value)).
+          keyvaluepairs:Put("enrich:with-property:" + propertySection:Key, propertySection:Value).
         END. /*_PROPERTY*/
       END.
 
@@ -369,6 +386,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       loggerConfiguration:Enrich:With(dynamicObjectEnrichers).
     END.
 
+    Serilog.Debugging.SelfLog:Enable(System.Console:Error).
     Serilog.Log:Logger = loggerConfiguration:CreateLogger().
 
     Serilog.Log:Logger:Information("Serilog has been configured.").
@@ -384,27 +402,27 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
     Log:Debug("Configuration").
     DO WHILE(configurationEnumerator:MoveNext()):
-      Log:Debug("  ~{Key~}=~{Value~}", BOX(configurationEnumerator:Current:Key), BOX(configurationEnumerator:Current:Value)).
-    END.
-
+      Log:Debug("  ~{Key~}=~{Value~}", NEW OpenEdge.Core.String(configurationEnumerator:Current:Key), NEW OpenEdge.Core.String(configurationEnumerator:Current:Value)).
+    END.*/
   END METHOD.
 
   METHOD PRIVATE STATIC DockerSwarmDetails GetSwarmDetails():
     DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
+
     dockerSwarmDetails = NEW DockerSwarmDetails().
     dockerSwarmDetails:Node = NEW Node().
-    dockerSwarmDetails:Node:ID = System.Environment:GetEnvironmentVariable("SWARM_NODE_ID").
-    dockerSwarmDetails:Node:Hostname = System.Environment:GetEnvironmentVariable("SWARM_NODE_HOSTNAME").
+    dockerSwarmDetails:Node:ID = EnvVars:GetEnvVar("SWARM_NODE_ID").
+    dockerSwarmDetails:Node:Hostname = EnvVars:GetEnvVar("SWARM_NODE_HOSTNAME").
 
     dockerSwarmDetails:Service = NEW Service().
-    dockerSwarmDetails:Service:ID = System.Environment:GetEnvironmentVariable("SWARM_SERVICE_ID").
-    dockerSwarmDetails:Service:Name = System.Environment:GetEnvironmentVariable("SWARM_SERVICE_NAME").
-    dockerSwarmDetails:Service:Labels = System.Environment:GetEnvironmentVariable("SWARM_SERVICE_LABELS").
+    dockerSwarmDetails:Service:ID = EnvVars:GetEnvVar("SWARM_SERVICE_ID").
+    dockerSwarmDetails:Service:Name = EnvVars:GetEnvVar("SWARM_SERVICE_NAME").
+    dockerSwarmDetails:Service:Labels = EnvVars:GetEnvVar("SWARM_SERVICE_LABELS").
 
     dockerSwarmDetails:Task = NEW Task().
-    dockerSwarmDetails:Task:ID = System.Environment:GetEnvironmentVariable("SWARM_TASK_ID").
-    dockerSwarmDetails:Task:Name = System.Environment:GetEnvironmentVariable("SWARM_TASK_NAME").
-    dockerSwarmDetails:Task:Slot = System.Environment:GetEnvironmentVariable("SWARM_TASK_SLOT").
+    dockerSwarmDetails:Task:ID = EnvVars:GetEnvVar("SWARM_TASK_ID").
+    dockerSwarmDetails:Task:Name = EnvVars:GetEnvVar("SWARM_TASK_NAME").
+    dockerSwarmDetails:Task:Slot = EnvVars:GetEnvVar("SWARM_TASK_SLOT").
 
     RETURN dockerSwarmDetails.
   END METHOD.
@@ -420,16 +438,17 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       IF (DatabaseConnectionAttempt()) THEN LEAVE _CONNECT_DATABASES.
 
       /* incremental pause up to the limit */
-      Log:Information("Pausing ~{PauseSeconds~} seconds for databases to become available...", BOX(connectRetrySeconds)).
+      Log:Information("Pausing ~{PauseSeconds~} seconds for databases to become available...", NEW OpenEdge.Core.Integer(connectRetrySeconds)).
       PAUSE connectRetrySeconds NO-MESSAGE.
       connectRetrySeconds = connectRetrySeconds * 2.
       IF connectRetrySeconds > DatabaseRetryMaxSeconds THEN DO:
         connectRetrySeconds = DatabaseRetryMaxSeconds.
       END.
+
       /* limit the max attempts? */
       IF DatabaseRetryMaxAttempts > 0 THEN DO:
-        IF connectRetryAttempt > DatabaseRetryMaxAttempts THEN DO:
-          Log:Error("Databases not connected after ~{ConnectionAttempts~} attempts!", BOX(connectRetryAttempt)).
+        IF connectRetryAttempt >= DatabaseRetryMaxAttempts THEN DO:
+          Log:Error("Databases not connected after ~{ConnectionAttempts~} attempts!", NEW OpenEdge.Core.Integer(connectRetryAttempt)).
           RETURN FALSE.
         END.
 
@@ -441,40 +460,44 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   END METHOD.
 
   METHOD PUBLIC STATIC LOGICAL DatabaseConnectionAttempt():
-    DEFINE VARIABLE logicalDatabaseNamesEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
-    DEFINE VARIABLE connectionStringsEnumerator AS "System.Collections.Generic.List<character>+Enumerator" NO-UNDO.
+    DEFINE VARIABLE logicalDatabaseNamesEnumerator AS IIterator NO-UNDO.
+    DEFINE VARIABLE connectionStringsEnumerator AS IIterator NO-UNDO.
 
-    connectionStringsEnumerator = ConnectionStrings:GetEnumerator().
-    logicalDatabaseNamesEnumerator = LogicalDatabaseNames:GetEnumerator().
+    connectionStringsEnumerator = ConnectionStrings:Iterator().
+    logicalDatabaseNamesEnumerator = LogicalDatabaseNames:Iterator().
     _CONNECT_DATABASE:
-    DO WHILE(connectionStringsEnumerator:MoveNext()):
-      logicalDatabaseNamesEnumerator:MoveNext().
+    DO WHILE(connectionStringsEnumerator:HasNext()):
+      DEFINE VARIABLE currentConnectionString AS OpenEdge.Core.String NO-UNDO.
+      currentConnectionString = CAST(connectionStringsEnumerator:Next(), OpenEdge.Core.String).
+      DEFINE VARIABLE databaseConnectionString AS CHARACTER NO-UNDO.
+      databaseConnectionString = currentConnectionString:ToString().
 
-      IF CONNECTED(logicalDatabaseNamesEnumerator:Current) THEN DO:
+      DEFINE VARIABLE currentLogicalDatabaseName AS OpenEdge.Core.String NO-UNDO.
+      currentLogicalDatabaseName = CAST(logicalDatabaseNamesEnumerator:Next(), OpenEdge.Core.String).
+      DEFINE VARIABLE logicalDatabaseName AS CHARACTER NO-UNDO.
+      logicalDatabaseName = currentLogicalDatabaseName:ToString().
+
+      IF CONNECTED(logicalDatabaseName) THEN DO:
         NEXT _CONNECT_DATABASE.
       END.
 
-      DEFINE VARIABLE databaseConnectionString AS CHARACTER NO-UNDO.
       DEFINE VARIABLE redactedDatabaseConnectionString AS CHARACTER NO-UNDO.
-
-      databaseConnectionString = connectionStringsEnumerator:Current.
       redactedDatabaseConnectionString = databaseConnectionString.
 
       DEFINE VARIABLE passwordIndex AS INTEGER NO-UNDO.
-      passwordIndex = LOOKUP("-P", databaseConnectionString, " ").
+      passwordIndex = LOOKUP("-P", redactedDatabaseConnectionString, " ").
       IF passwordIndex <> 0 THEN DO:
         passwordIndex = passwordIndex + 1.
-        redactedDatabaseConnectionString = databaseConnectionString.
         ENTRY(passwordIndex, redactedDatabaseConnectionString, " ") = FILL("*", LENGTH(ENTRY(passwordIndex, redactedDatabaseConnectionString, " "))).
       END.
 
-      Log:Information("Connecting to database with connection string (~{ConnectionString~})...", BOX(redactedDatabaseConnectionString)).
+      Log:Information("Connecting to database with connection string (~{ConnectionString~})...", NEW OpenEdge.Core.String(redactedDatabaseConnectionString)).
       DO ON ERROR UNDO, LEAVE
          ON STOP UNDO, LEAVE:
         CONNECT VALUE(databaseConnectionString) NO-ERROR.
       END.
       IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
-        Log:Error("ERROR: Couldn't connect to database! [~{ErrorMessage~}]", BOX(ERROR-STATUS:GET-MESSAGE(1))).
+        Log:Error("ERROR: Couldn't connect to database! [~{ErrorMessage~}]", NEW OpenEdge.Core.String(ERROR-STATUS:GET-MESSAGE(1))).
         RETURN FALSE.
       END.
     END. /*_CONNECT_DATABASE*/
@@ -489,15 +512,17 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       RETURN.
     END.
 
-    DEFINE VARIABLE openedgeEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
-    openedgeEnumerator = openedgeSection:GetChildren().
+    DEFINE VARIABLE openedgeIterator AS IIterator NO-UNDO.
+    openedgeIterator = openedgeSection:GetChildren().
     _OPENEDGE:
-    DO WHILE(openedgeEnumerator:MoveNext()):
+    DO WHILE(openedgeIterator:HasNext()):
+      DEFINE VARIABLE nextConfigurationSection AS IMapEntry NO-UNDO.
+      nextConfigurationSection = CAST(openedgeIterator:Next(), IMapEntry).
 
       DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
-      configurationSection = CAST(openedgeEnumerator:Current:Value, ConfigurationSection).
+      configurationSection = CAST(nextConfigurationSection:Value, ConfigurationSection).
 
-      /*      MESSAGE SUBSTITUTE("configurationSection &1->&2", configurationSection:Key, configurationSection:Value).*/
+/*      MESSAGE SUBSTITUTE("configurationSection &1->&2", configurationSection:Key, configurationSection:Value).*/
 
       IF configurationSection:Key = "startupProcedure" THEN DO:
         Bootstrap:StartupProcedure = configurationSection:Value.
@@ -510,26 +535,30 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
         Bootstrap:UseProfiler = LOGICAL(configurationSection:Value).
       END.
       ELSE IF configurationSection:Key = "databases" THEN DO:
-        DEFINE VARIABLE databaseSection     AS ConfigurationSection                                                         NO-UNDO.
-        DEFINE VARIABLE databasesEnumerator AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+        DEFINE VARIABLE databaseSection     AS ConfigurationSection NO-UNDO.
+        DEFINE VARIABLE databasesIterator AS IIterator            NO-UNDO.
 
-        databasesEnumerator = configurationSection:GetChildren().
-
+        databasesIterator = configurationSection:GetChildren().
         _DATABASE:
-        DO WHILE(databasesEnumerator:MoveNext()):
+        DO WHILE(databasesIterator:HasNext()):
+          DEFINE VARIABLE nextDatabaseSection AS IMapEntry NO-UNDO.
+          nextDatabaseSection = CAST(databasesIterator:Next(), IMapEntry).
 
-          databaseSection = CAST(databasesEnumerator:Current:Value, ConfigurationSection).
+          databaseSection = CAST(nextDatabaseSection:Value, ConfigurationSection).
           /*          MESSAGE SUBSTITUTE("databaseSection &1->&2", databaseSection:Key, databaseSection:Value).*/
-          DEFINE VARIABLE dbSettingSection         AS ConfigurationSection                                                         NO-UNDO.
-          DEFINE VARIABLE databaseEnumerator       AS "System.Collections.Generic.Dictionary<CHARACTER, System.Object>+Enumerator" NO-UNDO.
+          DEFINE VARIABLE dbSettingSection         AS ConfigurationSection NO-UNDO.
+          DEFINE VARIABLE databaseIterator         AS IIterator            NO-UNDO.
 
           DEFINE VARIABLE databaseConnectionString AS CHARACTER                                                                    NO-UNDO.
 
           databaseConnectionString = " -ct 1".
-          databaseEnumerator = databaseSection:GetChildren().
+          databaseIterator = databaseSection:GetChildren().
           _DB_SETTING:
-          DO WHILE(databaseEnumerator:MoveNext()):
-            dbSettingSection = CAST(databaseEnumerator:Current:Value, ConfigurationSection).
+          DO WHILE(databaseIterator:HasNext()):
+            DEFINE VARIABLE nextDbSettingSection AS IMapEntry NO-UNDO.
+            nextDbSettingSection = CAST(databaseIterator:Next(), IMapEntry).
+
+            dbSettingSection = CAST(nextDbSettingSection:Value, ConfigurationSection).
             /*            MESSAGE SUBSTITUTE("dbSettingSection &1->&2", dbSettingSection:Key, dbSettingSection:Value).*/
 
             IF dbSettingSection:Key = ("db") THEN DO:

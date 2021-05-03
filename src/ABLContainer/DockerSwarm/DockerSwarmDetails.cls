@@ -3,7 +3,7 @@ USING ABLContainer.DockerSwarm.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.DockerSwarm.DockerSwarmDetails INHERITS System.Object:
+CLASS ABLContainer.DockerSwarm.DockerSwarmDetails INHERITS Progress.Lang.Object:
   DEFINE PUBLIC PROPERTY Node AS Node NO-UNDO
   GET.
   SET.

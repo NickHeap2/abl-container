@@ -1,309 +1,649 @@
 USING ABLContainer.Logging.* FROM PROPATH.
-USING Progress.Lang.*.
-USING Serilog.* FROM ASSEMBLY.
-USING Serilog.Events.* FROM ASSEMBLY.
-USING Serilog.Parsing.* FROM ASSEMBLY.
-USING System.* FROM ASSEMBLY.
+USING OpenEdge.Core.Collections.* FROM PROPATH.
+USING Progress.Lang.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS ABLContainer.Logging.Log:
-  DEFINE STATIC VARIABLE propertiesArray1 AS CLASS System.Array NO-UNDO.
-  DEFINE STATIC VARIABLE propertiesArray2 AS CLASS System.Array NO-UNDO.
-  DEFINE STATIC VARIABLE propertiesArray3 AS CLASS System.Array NO-UNDO.
-  DEFINE STATIC VARIABLE propertiesArray4 AS CLASS System.Array NO-UNDO.
-  DEFINE STATIC VARIABLE propertiesArray5 AS CLASS System.Array NO-UNDO.
-  DEFINE STATIC VARIABLE propertiesArray6 AS CLASS System.Array NO-UNDO.
 
-  DEFINE STATIC VARIABLE propertyTokenClass AS CLASS Progress.Lang.Class NO-UNDO.
-/*  DEFINE STATIC VARIABLE messageTemplateParser AS CLASS MessageTemplateParser NO-UNDO.*/
+  DEFINE STATIC VARIABLE propertyDictionary AS IStringKeyedMap NO-UNDO.
 
-  METHOD STATIC PUBLIC LOGICAL IsDebugEnabled ():
-    RETURN Serilog.Log:IsEnabled(LogEventLevel:Debug).
+  DEFINE PRIVATE STATIC VARIABLE errorLevel AS INTEGER INITIAL 0 NO-UNDO.
+  DEFINE PRIVATE STATIC VARIABLE warningLevel AS INTEGER INITIAL 1 NO-UNDO.
+  DEFINE PRIVATE STATIC VARIABLE informationLevel AS INTEGER INITIAL 2 NO-UNDO.
+  DEFINE PRIVATE STATIC VARIABLE debugLevel AS INTEGER INITIAL 3 NO-UNDO.
+
+  DEFINE PRIVATE STATIC VARIABLE textFormat AS INTEGER INITIAL 0 NO-UNDO.
+  DEFINE PRIVATE STATIC VARIABLE jsonFormat AS INTEGER INITIAL 1 NO-UNDO.
+  DEFINE PRIVATE STATIC VARIABLE compactJsonFormat AS INTEGER INITIAL 2 NO-UNDO.
+
+  DEFINE PRIVATE STATIC VARIABLE messageTemplate AS CHARACTER NO-UNDO.
+  DEFINE PRIVATE STATIC VARIABLE parsedMessage AS CHARACTER NO-UNDO.
+  DEFINE PRIVATE STATIC VARIABLE paramMessage AS CHARACTER NO-UNDO.
+
+  DEFINE STATIC PUBLIC PROPERTY TestMode AS LOGICAL INITIAL FALSE NO-UNDO
+    GET.
+    SET.
+    
+  DEFINE STATIC PUBLIC PROPERTY LastLogMessage AS CHARACTER NO-UNDO
+    GET.
+    SET.
+
+  DEFINE STATIC PUBLIC PROPERTY LastConsoleLog AS CHARACTER NO-UNDO
+    GET.
+    SET.
+
+  DEFINE STATIC PUBLIC PROPERTY LastLogManagerLog AS CHARACTER NO-UNDO
+    GET.
+    SET.
+
+  DEFINE STATIC PUBLIC PROPERTY LogLevelPrefix AS CHARACTER NO-UNDO
+    GET.
+    SET.
+
+  DEFINE STATIC PUBLIC PROPERTY LogToConsole AS LOGICAL INITIAL FALSE NO-UNDO
+    GET.
+    SET.
+
+  DEFINE STATIC PUBLIC PROPERTY LogToLogManager AS LOGICAL INITIAL TRUE NO-UNDO
+    GET.
+    SET.
+
+  DEFINE PRIVATE STATIC VARIABLE logFormat AS INTEGER INITIAL 0 NO-UNDO.
+  DEFINE STATIC PUBLIC PROPERTY LoggingFormat AS CHARACTER INITIAL "Text" NO-UNDO
+    GET:
+      CASE logFormat:
+        WHEN Log:jsonFormat THEN DO:
+          RETURN "Json".
+        END.
+        WHEN Log:compactJsonFormat THEN DO:
+          RETURN "CompactJson".
+        END.
+        OTHERWISE DO:
+          RETURN "Text".
+        END.
+      END CASE.
+    END GET.
+    SET (newValue AS CHARACTER):
+      CASE newValue:
+        WHEN "Json" THEN DO:
+          logFormat = Log:jsonFormat.
+        END.
+        WHEN "CompactJson" THEN DO:
+          logFormat = Log:compactJsonFormat.
+        END.
+        OTHERWISE DO:
+          logFormat = Log:textFormat.
+        END.
+      END CASE.
+    END SET.
+
+  DEFINE PRIVATE STATIC VARIABLE minLevel AS INTEGER INITIAL 2 NO-UNDO.
+  DEFINE STATIC PUBLIC PROPERTY MinimumLevel AS CHARACTER NO-UNDO
+    GET:
+      CASE minLevel:
+        WHEN Log:errorLevel THEN DO:
+          RETURN "Error".
+        END.
+        WHEN Log:warningLevel THEN DO:
+          RETURN "Warning".
+        END.
+        WHEN Log:debugLevel THEN DO:
+          RETURN "Debug".
+        END.
+        OTHERWISE DO:
+          RETURN "Information".
+        END.
+      END CASE.
+    END GET.
+    SET (newValue AS CHARACTER):
+      CASE newValue:
+        WHEN "Error" THEN DO:
+          minLevel = Log:errorLevel.
+        END.
+        WHEN "Warning" THEN DO:
+          minLevel = Log:warningLevel.
+        END.
+        WHEN "Debug" THEN DO:
+          minLevel = Log:debugLevel.
+        END.
+        OTHERWISE DO:
+          minLevel = Log:informationLevel.
+        END.
+      END CASE.
+    END SET.
+
+
+  METHOD PRIVATE STATIC VOID ParseProperties():
+      IF NOT VALID-OBJECT(propertyDictionary) THEN DO:
+        RETURN.
+      END.
+  
+      DEFINE VARIABLE propertyIterator AS IIterator NO-UNDO.
+      propertyIterator = propertyDictionary:EntrySet:Iterator().
+      
+      _PROPERTIES:
+      DO WHILE(propertyIterator:HasNext()):
+        DEFINE VARIABLE propertyKey   AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE propertyValue AS CHARACTER NO-UNDO.
+      
+        DEFINE VARIABLE currentProperty AS IMapEntry NO-UNDO.
+        currentProperty = CAST(propertyIterator:Next(), IMapEntry).
+  
+        propertyKey = currentProperty:Key:ToString().
+        propertyValue = GetValueForParam(currentProperty:Value).
+  
+        Log:paramMessage = SUBSTITUTE("&1, '&2': &3", Log:paramMessage, propertyKey, propertyValue). 
+      END.
   END METHOD.
 
-  METHOD STATIC PUBLIC LOGICAL IsVerboseEnabled ():
-    RETURN Serilog.Log:IsEnabled(LogEventLevel:Verbose).
-  END METHOD.
 
-  METHOD STATIC PUBLIC VOID CloseAndFlush ():
-    Serilog.Log:CloseAndFlush().
-  END METHOD.
+  METHOD PRIVATE STATIC VOID LogMessage(logLevel AS CHARACTER):
+    DEFINE VARIABLE logMessage AS CHARACTER NO-UNDO.
 
-  METHOD STATIC PUBLIC System.IDisposable PushProperty(contextName AS CHARACTER, contextValue AS System.Object):
-    RETURN Serilog.Context.LogContext:PushProperty(contextName, contextValue, FALSE).
-  END METHOD.
-
-  METHOD STATIC PUBLIC System.IDisposable PushProperty(contextName AS CHARACTER, contextValue AS System.Object, destructureObjects AS LOGICAL):
-    RETURN Serilog.Context.LogContext:PushProperty(contextName, contextValue, destructureObjects).
-  END METHOD.
-
-  METHOD STATIC PUBLIC VOID ResetContext():
-    Serilog.Context.LogContext:Reset().
-  END METHOD.
-
-  METHOD STATIC VOID Write (eventTime AS DATETIME, level AS LogEventLevel, exception AS Exception, messageTemplateText AS CHARACTER, properties AS System.Array):
-
-    DEFINE VARIABLE eventDateTimeOffset AS DateTimeOffset NO-UNDO.
-    eventDateTimeOffset = NEW DateTimeOffset(eventTime).
-
-    DEFINE VARIABLE messageTemplate AS MessageTemplate NO-UNDO.
-    DEFINE VARIABLE propertiesList AS CLASS "System.Collections.Generic.IEnumerable<Serilog.Events.LogEventProperty>" NO-UNDO.
-
-    IF (Serilog.Log:Logger:BindMessageTemplate(messageTemplateText, properties, OUTPUT messageTemplate, OUTPUT propertiesList)) THEN DO:
-      DEFINE VARIABLE logEvent AS LogEvent NO-UNDO.
-      logEvent = NEW LogEvent(eventDateTimeOffset, level, exception, messageTemplate, propertiesList).
-
-      Serilog.Log:Logger:Write(logEvent).
-
-/*      DELETE OBJECT logEvent NO-ERROR.*/
+    /*format the message*/
+    IF Log:logFormat = Log:jsonFormat THEN DO:
+      logMessage = SUBSTITUTE("~{'@timestamp': '&1', 'level': '&2', 'message': '&3', 'messageTemplate': '&4'&5~}", ISO-DATE(NOW), LogLevelPrefix + logLevel, Log:parsedMessage, Log:messageTemplate, Log:paramMessage).
     END.
-/*    ELSE DO:                                             */
-/*      UNDO, THROW NEW AppError("Couldn't bind message!").*/
-/*    END.                                                 */
+    ELSE IF Log:logFormat = Log:compactJsonFormat THEN DO:
+      logMessage = SUBSTITUTE("~{'@t': '&1', '@l': '&2', '@m': '&3', '@mt': '&4'&5~}", ISO-DATE(NOW), LogLevelPrefix + logLevel, Log:parsedMessage, Log:messageTemplate, Log:paramMessage).
+    END.
+    ELSE DO:
+      logMessage = Log:parsedMessage.
+    END.
 
-    DELETE OBJECT eventDateTimeOffset NO-ERROR.
-    DELETE OBJECT messageTemplate NO-ERROR.
-    DELETE OBJECT propertiesList NO-ERROR.
+    /*save last message for testing*/  
+    Log:LastLogMessage = logMessage.
+
+    /*actually log it*/
+    IF Log:LogToConsole THEN DO:
+      IF TestMode = TRUE THEN DO:
+        Log:LastConsoleLog = logMessage.
+      END.
+      ELSE DO:
+        MESSAGE logMessage.
+      END.
+    END.
+    IF Log:LogToLogManager THEN DO:
+      IF TestMode = TRUE THEN DO:
+        Log:LastLogManagerLog = "[01/02/03@04:05:06.789+0000] P-000001 T-123456789 1 4GL " + STRING(Log:LogLevelPrefix + logLevel, "X(14)") + " " + logMessage.
+      END.
+      ELSE DO:
+        LOG-MANAGER:WRITE-MESSAGE(logMessage, logLevel) NO-ERROR.
+      END.
+    END.
   END METHOD.
 
-  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray1(messageValue)).
+  METHOD PRIVATE STATIC CHARACTER GetValueForParam(param1 AS Progress.Lang.Object):
+    DEFINE VARIABLE paramValue AS CHARACTER NO-UNDO.
+    
+    IF TYPE-OF(param1, OpenEdge.Core.DateTimeHolder) THEN DO:
+      DEFINE VARIABLE dateTimeParam AS DATETIME NO-UNDO.
+      dateTimeParam = CAST(param1, OpenEdge.Core.DateTimeHolder):Value.
+      
+      IF dateTimeParam = ? THEN DO:
+        paramValue = "null".
+      END.
+      ELSE DO:
+        paramValue = "'" + ISO-DATE(dateTimeParam) + "'".
+      END.
+    END.
+    ELSE IF TYPE-OF(param1, OpenEdge.Core.String) THEN DO:
+      paramValue = "'" + REPLACE(param1:ToString(), "~n", "\n") + "'".
+      IF paramValue = ? THEN DO:
+        paramValue = "null".
+      END.
+    END.
+    ELSE IF TYPE-OF(param1, OpenEdge.Core.LogicalValue) THEN DO:
+      DEFINE VARIABLE logicalValueParam AS OpenEdge.Core.LogicalValue NO-UNDO.
+      logicalValueParam = CAST(param1, OpenEdge.Core.LogicalValue).
+
+      logicalValueParam:Format = "true/false".
+      paramValue = logicalValueParam:ToString().
+    END.
+    ELSE DO:
+      paramValue = param1:ToString().
+    END.
+
+    RETURN paramValue.
   END METHOD.
 
-  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray2(messageValue1, messageValue2)).
+  METHOD PRIVATE STATIC VOID ParseParam(param1 AS Progress.Lang.Object):
+    DEFINE VARIABLE paramName AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE paramValue AS CHARACTER NO-UNDO.
+
+    DEFINE VARIABLE iStartBrace AS INTEGER NO-UNDO.
+    DEFINE VARIABLE iEndBrace AS INTEGER NO-UNDO.
+
+    iStartBrace = INDEX(Log:parsedMessage, "~{").
+    iEndBrace = INDEX(Log:parsedMessage, "~}").
+    IF iStartBrace > 0
+      AND iEndBrace > 0
+    THEN DO:
+      /*get param name*/
+      paramName = SUBSTRING(parsedMessage, iStartBrace + 1, (iEndBrace - iStartBrace) - 1).
+
+      paramValue = GetValueForParam(param1).
+
+      /*replace valuename with value in message*/
+      Log:parsedMessage = REPLACE(parsedMessage, SUBSTITUTE("~{&1~}", paramName), REPLACE(paramValue, "'", "")).
+
+      /*add*/
+      Log:paramMessage = SUBSTITUTE("&1, '&2': &3", Log:paramMessage, paramName, paramValue). 
+    END.
   END METHOD.
 
-  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
+  METHOD PRIVATE STATIC VOID InitMessageParse(msg AS CHARACTER):
+    Log:messageTemplate = msg.
+    /* escape newlines */
+    Log:parsedMessage = REPLACE(msg, "~n", "\n").
+    Log:paramMessage = "".
   END METHOD.
 
-  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
+  /* Error */
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER):
+    Log:InitMessageParse(msg).
+
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray5(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5)).
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, ToArray6(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5, messageValue6)).
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseParam(param2).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Log:Write(eventTime, LogEventLevel:Warning, ?, messageTemplate, valueArray).
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseParam(param2).
+    Log:ParseParam(param3).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray1(messageValue)).
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseParam(param2).
+    Log:ParseParam(param3).
+    Log:ParseParam(param4).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray2(messageValue1, messageValue2)).
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseParam(param2).
+    Log:ParseParam(param3).
+    Log:ParseParam(param4).
+    Log:ParseParam(param5).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object, param6 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseParam(param2).
+    Log:ParseParam(param3).
+    Log:ParseParam(param4).
+    Log:ParseParam(param5).
+    Log:ParseParam(param6).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
+  METHOD STATIC VOID LogItAt (logLevel AS CHARACTER, eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray5(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5)).
+  METHOD STATIC VOID LogItAt (logLevel AS CHARACTER, eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseParam(param2).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
-    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, ToArray6(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5, messageValue6)).
+  METHOD STATIC VOID LogItAt (logLevel AS CHARACTER, eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    Log:InitMessageParse(msg).
+
+    Log:ParseParam(param1).
+    Log:ParseParam(param2).
+    Log:ParseParam(param3).
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Log:Write(eventTime, LogEventLevel:Information, ?, messageTemplate, valueArray).
+  METHOD STATIC VOID LogIt (logLevel AS CHARACTER, msg AS CHARACTER, propertiesArray AS Progress.Lang.Object EXTENT):
+    Log:InitMessageParse(msg).
+
+    DEFINE VARIABLE propertyNum AS INTEGER NO-UNDO.
+    DO propertyNum = 1 TO EXTENT(propertiesArray):
+      Log:ParseParam(propertiesArray[propertyNum]).
+    END.
+    Log:ParseProperties().
+
+    Log:LogMessage(logLevel).
   END METHOD.
 
-  METHOD STATIC VOID DebugAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Log:Write(eventTime, LogEventLevel:Debug, ?, messageTemplate, valueArray).
+  /* Error */
+  METHOD STATIC VOID Error (msg AS CHARACTER):
+    LogIt ("ERROR", msg).
   END METHOD.
 
-  METHOD STATIC VOID ErrorAt (eventTime AS DATETIME, messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Log:Write(eventTime, LogEventLevel:Error, ?, messageTemplate, valueArray).
+  METHOD STATIC VOID Error (msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    LogIt ("ERROR", msg, param1).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER):
-    Serilog.Log:Logger:Information(messageTemplate).
+  METHOD STATIC VOID Error (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    LogIt ("ERROR", msg, param1, param2).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue AS System.Object):
-    Serilog.Log:Logger:Information(messageTemplate, ToArray1(messageValue)).
+  METHOD STATIC VOID Error (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    LogIt ("ERROR", msg, param1, param2, param3).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
-    Serilog.Log:Logger:Information(messageTemplate, ToArray2(messageValue1, messageValue2)).
+  METHOD STATIC VOID Error (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object):
+    LogIt ("ERROR", msg, param1, param2, param3, param4).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object):
-    Serilog.Log:Logger:Information(messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
+  METHOD STATIC VOID Error (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object):
+    LogIt ("ERROR", msg, param1, param2, param3, param4, param5).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
-    Serilog.Log:Logger:Information(messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
+  METHOD STATIC VOID Error (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object, param6 AS Progress.Lang.Object):
+    LogIt ("ERROR", msg, param1, param2, param3, param4, param5, param6).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):
-    Serilog.Log:Logger:Information(messageTemplate, ToArray5(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5)).
+  METHOD STATIC VOID Error (msg AS CHARACTER, propertiesArray AS Progress.Lang.Object EXTENT):
+    LogIt ("ERROR", msg, propertiesArray).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
-    Serilog.Log:Logger:Information(messageTemplate, ToArray6(messageValue1, messageValue2, messageValue3, messageValue4, messageValue5, messageValue6)).
+  METHOD STATIC VOID ErrorAt (msg AS CHARACTER, eventTime AS DATETIME, param1 AS Progress.Lang.Object):
+    LogItAt ("ERROR", eventTime, msg, param1).
   END METHOD.
 
-  METHOD STATIC VOID Information (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Serilog.Log:Logger:Information(messageTemplate, valueArray).
+  METHOD STATIC VOID ErrorAt (msg AS CHARACTER, eventTime AS DATETIME, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    LogItAt ("ERROR", eventTime, msg, param1, param2).
   END METHOD.
 
-  METHOD STATIC VOID Error (messageTemplate AS CHARACTER):
-    Serilog.Log:Logger:Error(messageTemplate).
+  METHOD STATIC VOID ErrorAt (msg AS CHARACTER, eventTime AS DATETIME, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    LogItAt ("ERROR", eventTime, msg, param1, param2, param3).
   END METHOD.
 
   METHOD STATIC VOID Error (er AS Progress.Lang.Error):
+    DEFINE VARIABLE errorMessage AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE errorNumber AS INTEGER NO-UNDO.
+    DO errorNumber = 1 TO er:NumMessages:
+      IF errorNumber > 1 THEN errorMessage = errorMessage + ", ".
+      errorMessage = errorMessage + er:GetMessage(errorNumber).
+    END.
+
     IF SESSION:ERROR-STACK-TRACE = TRUE THEN DO:
-      Serilog.Log:Logger:Error("ERROR: ~{ErrorMessage~}~n~{ErrorStack~}", ToArray2(BOX(er:GetMessage(1)), BOX(er:CallStack))).
+      Log:Error("ERROR: ~{ErrorMessage~}~n~{ErrorStack~}", NEW OpenEdge.Core.String(errorMessage), NEW OpenEdge.Core.String(er:CallStack)).
     END.
     ELSE DO:
-      Serilog.Log:Logger:Error("ERROR: ~{ErrorMessage~}", ToArray1(BOX(er:GetMessage(1)))).
+      Log:Error("ERROR: ~{ErrorMessage~}", NEW OpenEdge.Core.String(errorMessage)).
     END.
   END METHOD.
 
-  METHOD STATIC VOID Error (messageTemplate AS CHARACTER, messageValue AS System.Object):
-    Serilog.Log:Logger:Error(messageTemplate, ToArray1(messageValue)).
+  /* Information */
+  METHOD STATIC VOID Information (msg AS CHARACTER):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg).
   END METHOD.
 
-  METHOD STATIC VOID Error (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
-    Serilog.Log:Logger:Error(messageTemplate, ToArray2(messageValue1, messageValue2)).
+  METHOD STATIC VOID Information (msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg, param1).
   END METHOD.
 
-  METHOD STATIC VOID Error (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Serilog.Log:Logger:Error(messageTemplate, valueArray).
+  METHOD STATIC VOID Information (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg, param1, param2).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER):
-    Serilog.Log:Logger:Debug(messageTemplate).
+  METHOD STATIC VOID Information (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg, param1, param2, param3).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue AS System.Object):
-    Serilog.Log:Logger:Debug(messageTemplate, ToArray1(messageValue)).
+  METHOD STATIC VOID Information (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg, param1, param2, param3, param4).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
-    Serilog.Log:Logger:Debug(messageTemplate, ToArray2(messageValue1, messageValue2)).
+  METHOD STATIC VOID Information (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg, param1, param2, param3, param4, param5).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object):
-    Serilog.Log:Logger:Debug(messageTemplate, ToArray3(messageValue1, messageValue2, messageValue3)).
+  METHOD STATIC VOID Information (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object, param6 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg, param1, param2, param3, param4, param5, param6).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
-    Serilog.Log:Logger:Debug(messageTemplate, ToArray4(messageValue1, messageValue2, messageValue3, messageValue4)).
+  METHOD STATIC VOID Information (msg AS CHARACTER, propertiesArray AS Progress.Lang.Object EXTENT):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogIt ("INFO", msg, propertiesArray).
   END METHOD.
 
-  METHOD STATIC VOID Debug (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Serilog.Log:Logger:Debug(messageTemplate, valueArray).
+  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogItAt ("INFO", eventTime, msg, param1).
   END METHOD.
 
-  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER):
-    Serilog.Log:Logger:Warning(messageTemplate).
+  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogItAt ("INFO", eventTime, msg, param1, param2).
   END METHOD.
 
-  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER, messageValue AS System.Object):
-    Serilog.Log:Logger:Warning(messageTemplate, ToArray1(messageValue)).
+  METHOD STATIC VOID InformationAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:informationLevel THEN RETURN.
+    LogItAt ("INFO", eventTime, msg, param1, param2, param3).
   END METHOD.
 
-  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER, messageValue1 AS System.Object, messageValue2 AS System.Object):
-    Serilog.Log:Logger:Warning(messageTemplate, ToArray2(messageValue1, messageValue2)).
+  /* Debug */
+  METHOD STATIC VOID Debug (msg AS CHARACTER):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg).
   END METHOD.
 
-  METHOD STATIC VOID Warning (messageTemplate AS CHARACTER, valueArray AS "System.Object[]"):
-    Serilog.Log:Logger:Warning(messageTemplate, valueArray).
+  METHOD STATIC VOID Debug (msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg, param1).
   END METHOD.
 
-  METHOD PRIVATE STATIC System.Array ToArray1(messageValue AS System.Object):
-    IF NOT VALID-OBJECT(propertiesArray1) THEN DO:
-      propertiesArray1 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 1).
-    END.
-    propertiesArray1:SetValue(messageValue, 0).
-
-    RETURN propertiesArray1.
+  METHOD STATIC VOID Debug (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg, param1, param2).
   END METHOD.
 
-  METHOD PRIVATE STATIC System.Array ToArray2(messageValue1 AS System.Object, messageValue2 AS System.Object):
-    IF NOT VALID-OBJECT(propertiesArray2) THEN DO:
-      propertiesArray2 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 2).
-    END.
-
-    propertiesArray2:SetValue(messageValue1, 0).
-    propertiesArray2:SetValue(messageValue2, 1).
-    RETURN propertiesArray2.
+  METHOD STATIC VOID Debug (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg, param1, param2, param3).
   END METHOD.
 
-  METHOD PRIVATE STATIC System.Array ToArray3(messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object):
-    IF NOT VALID-OBJECT(propertiesArray3) THEN DO:
-      propertiesArray3 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 3).
-    END.
-
-    propertiesArray3:SetValue(messageValue1, 0).
-    propertiesArray3:SetValue(messageValue2, 1).
-    propertiesArray3:SetValue(messageValue3, 2).
-    RETURN propertiesArray3.
+  METHOD STATIC VOID Debug (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg, param1, param2, param3, param4).
   END METHOD.
 
-  METHOD PRIVATE STATIC System.Array ToArray4(messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object):
-    IF NOT VALID-OBJECT(propertiesArray4) THEN DO:
-      propertiesArray4 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 4).
-    END.
-
-    propertiesArray4:SetValue(messageValue1, 0).
-    propertiesArray4:SetValue(messageValue2, 1).
-    propertiesArray4:SetValue(messageValue3, 2).
-    propertiesArray4:SetValue(messageValue4, 3).
-    RETURN propertiesArray4.
+  METHOD STATIC VOID Debug (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg, param1, param2, param3, param4, param5).
   END METHOD.
 
-  METHOD PRIVATE STATIC System.Array ToArray5(messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object):
-    IF NOT VALID-OBJECT(propertiesArray5) THEN DO:
-      propertiesArray5 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 5).
-    END.
-
-    propertiesArray5:SetValue(messageValue1, 0).
-    propertiesArray5:SetValue(messageValue2, 1).
-    propertiesArray5:SetValue(messageValue3, 2).
-    propertiesArray5:SetValue(messageValue4, 3).
-    propertiesArray5:SetValue(messageValue5, 4).
-    RETURN propertiesArray5.
+  METHOD STATIC VOID Debug (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object, param6 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg, param1, param2, param3, param4, param5, param6).
   END METHOD.
 
-  METHOD PRIVATE STATIC System.Array ToArray6(messageValue1 AS System.Object, messageValue2 AS System.Object, messageValue3 AS System.Object, messageValue4 AS System.Object, messageValue5 AS System.Object, messageValue6 AS System.Object):
-    IF NOT VALID-OBJECT(propertiesArray6) THEN DO:
-      propertiesArray6 = System.Array:CreateInstance(Progress.Util.TypeHelper:GetType("System.Object"), 6).
-    END.
+  METHOD STATIC VOID Debug (msg AS CHARACTER, propertiesArray AS Progress.Lang.Object EXTENT):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogIt ("DEBUG", msg, propertiesArray).
+  END METHOD.
 
-    propertiesArray6:SetValue(messageValue1, 0).
-    propertiesArray6:SetValue(messageValue2, 1).
-    propertiesArray6:SetValue(messageValue3, 2).
-    propertiesArray6:SetValue(messageValue4, 3).
-    propertiesArray6:SetValue(messageValue5, 4).
-    propertiesArray6:SetValue(messageValue6, 5).
-    RETURN propertiesArray6.
+  METHOD STATIC VOID DebugAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogItAt ("DEBUG", eventTime, msg, param1).
+  END METHOD.
+
+  METHOD STATIC VOID DebugAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogItAt ("DEBUG", eventTime, msg, param1, param2).
+  END METHOD.
+
+  METHOD STATIC VOID DebugAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:debugLevel THEN RETURN.
+    LogItAt ("DEBUG", eventTime, msg, param1, param2, param3).
+  END METHOD.
+
+  /* Warning */
+  METHOD STATIC VOID Warning (msg AS CHARACTER):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg, param1).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg, param1, param2).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg, param1, param2, param3).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg, param1, param2, param3, param4).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg, param1, param2, param3, param4, param5).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object, param4 AS Progress.Lang.Object, param5 AS Progress.Lang.Object, param6 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg, param1, param2, param3, param4, param5, param6).
+  END METHOD.
+
+  METHOD STATIC VOID Warning (msg AS CHARACTER, propertiesArray AS Progress.Lang.Object EXTENT):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogIt ("WARN", msg, propertiesArray).
+  END METHOD.
+
+  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogItAt ("WARN", eventTime, msg, param1).
+  END METHOD.
+
+  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogItAt ("WARN", eventTime, msg, param1, param2).
+  END METHOD.
+
+  METHOD STATIC VOID WarningAt (eventTime AS DATETIME, msg AS CHARACTER, param1 AS Progress.Lang.Object, param2 AS Progress.Lang.Object, param3 AS Progress.Lang.Object):
+    IF Log:minLevel < Log:warningLevel THEN RETURN.
+    LogItAt ("WARN", eventTime, msg, param1, param2, param3).
+  END METHOD.
+
+
+  /* others */
+
+  METHOD STATIC VOID Fatal (msg AS CHARACTER):
+    LogIt("FATAL", msg).
+  END METHOD.
+
+  METHOD STATIC PUBLIC LOGICAL IsDebugEnabled ():
+    RETURN (Log:minLevel = Log:debugLevel).
+  END METHOD.
+
+  METHOD STATIC VOID CloseAndFlush ():
+    LOG-MANAGER:CLOSE-LOG().
   END METHOD.
 
   METHOD PUBLIC STATIC VOID ClearData():
-    DELETE OBJECT Log:propertiesArray1 NO-ERROR.
-    DELETE OBJECT Log:propertiesArray2 NO-ERROR.
-    DELETE OBJECT Log:propertiesArray3 NO-ERROR.
-    DELETE OBJECT Log:propertiesArray4 NO-ERROR.
-    DELETE OBJECT Log:propertiesArray5 NO-ERROR.
-    DELETE OBJECT Log:propertiesArray6 NO-ERROR.
+    Log:LastLogMessage = "".
+    Log:LastConsoleLog = "".
+    Log:LastLogManagerLog = "".
+    ResetContext().
   END.
+
+  /* properties */
+
+  METHOD STATIC PUBLIC LogProperty PushProperty(contextName AS CHARACTER, contextValue AS Progress.Lang.Object):
+    IF NOT VALID-OBJECT(propertyDictionary) THEN DO:
+      Log:propertyDictionary = NEW StringKeyedMap().
+    END.
+  
+    propertyDictionary:Put(contextName, contextValue).
+    
+    RETURN NEW LogProperty(contextName).
+  END METHOD.
+
+  METHOD STATIC PUBLIC LogProperty PushProperty(contextName AS CHARACTER, contextValue AS Progress.Lang.Object, destructureObjects AS LOGICAL):
+    IF NOT VALID-OBJECT(propertyDictionary) THEN DO:
+      Log:propertyDictionary = NEW StringKeyedMap().
+    END.
+
+    /* destructure? */
+    propertyDictionary:Put(contextName, contextValue).
+    
+    RETURN NEW LogProperty(contextName).
+  END METHOD.
+
+  METHOD STATIC PUBLIC VOID DisposeProperty(contextName AS CHARACTER):
+    propertyDictionary:Remove(contextName) NO-ERROR.
+  END METHOD.
+
+  METHOD STATIC PUBLIC VOID ResetContext():
+    IF VALID-OBJECT(propertyDictionary) THEN DO:
+      propertyDictionary:Clear().
+    END.
+  END METHOD.
+
+
 
 END CLASS.

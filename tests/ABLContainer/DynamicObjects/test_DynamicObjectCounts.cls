@@ -3,8 +3,7 @@ USING ABLContainer.Configuration.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
 USING ABLContainer.DynamicObjects.* FROM PROPATH.
 USING OpenEdge.Core.Assert FROM PROPATH.
-USING Progress.Lang.*.
-USING Serilog.Events.* FROM ASSEMBLY.
+USING Progress.Lang.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 

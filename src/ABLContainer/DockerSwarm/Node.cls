@@ -2,7 +2,7 @@ USING Progress.Lang.*.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.DockerSwarm.Node INHERITS System.Object:
+CLASS ABLContainer.DockerSwarm.Node INHERITS Progress.Lang.Object:
   DEFINE PUBLIC PROPERTY ID AS CHARACTER NO-UNDO
   GET.
   SET.
