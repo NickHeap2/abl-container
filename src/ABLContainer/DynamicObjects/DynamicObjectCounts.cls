@@ -1,9 +1,10 @@
 USING ABLContainer.DynamicObjects.* FROM PROPATH.
-USING Progress.Lang.*.
+USING Progress.Lang.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS ABLContainer.DynamicObjects.DynamicObjectCounts INHERITS System.Object:
+CLASS ABLContainer.DynamicObjects.DynamicObjectCounts INHERITS Progress.Lang.Object:
+
   DEFINE PUBLIC PROPERTY DatasetCount AS INTEGER NO-UNDO
   GET.
   SET.

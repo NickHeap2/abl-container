@@ -4,3 +4,4 @@ packages/
 profile/
 assemblies/**/*
 !assemblies/assemblies.xml
+*.log

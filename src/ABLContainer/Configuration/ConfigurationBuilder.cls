@@ -84,6 +84,7 @@ CLASS ABLContainer.Configuration.ConfigurationBuilder:
       THEN DO:
         NEXT _FILES.
       END.
+
       /*read the file*/
       DEFINE VARIABLE fileContents-pointer AS MEMPTR NO-UNDO.
       

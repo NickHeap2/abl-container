@@ -1,7 +1,7 @@
 USING ABLContainer.Configuration.* FROM PROPATH.
 USING OpenEdge.Core.Assert FROM PROPATH.
 USING OpenEdge.Core.Collections.* FROM PROPATH.
-USING Progress.Lang.*.
+USING Progress.Lang.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -44,7 +44,7 @@ CLASS ABLContainer.Configuration.test_EnvVars:
     
     DEFINE VARIABLE nextEnvVarObject AS Progress.Lang.Object NO-UNDO.
     nextEnvVarObject = envVarIterator:Next().
-    Assert:IsType(nextEnvVarObject, GET-CLASS("OpenEdge.Core.Collections.IMapEntry")).
+    /*Assert:IsType(nextEnvVarObject, GET-CLASS("OpenEdge.Core.Collections.IMapEntry")).*/
     
     DEFINE VARIABLE nextEnvVar AS IMapEntry NO-UNDO.
     nextEnvVar = CAST(nextEnvVarObject, IMapEntry).

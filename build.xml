@@ -51,6 +51,13 @@
     <fileset dir="tests" id="fileset_tests">
         <include name="**/test_*.p"/>
         <include name="**/test_*.cls"/>
+
+        <!-- these won't work now the library is cross platform -->
+        <!-- the classes need to move out to a platform plugin library -->
+        <exclude name="**/Apm/*.cls"/>
+        <exclude name="**/DynamicObjects/*.cls"/>
+        <exclude name="**/Leaks/*.cls"/>
+        <exclude name="**/Performance/*.cls"/>
     </fileset>
 
     <!-- db connection set -->
@@ -58,7 +65,11 @@
         <!-- <DBConnection id="database" logicalName="database" dbName="database" dbDir="build/db"/> -->
     </DBConnectionSet>
 
-    <target name="build" depends="init,restore,copy_static,compile,test,coveragereport"/>
+    <target name="build" depends="init,restore,copy_static,compile,compile-oe12,test"/>
+
+    <target name="clean" depends="">
+      <delete dir="build/" quiet="true"/>
+    </target>
 
     <target name="init" depends="" description="Prepare for compile">
         <mkdir dir="build/"/>
@@ -84,16 +95,17 @@
           packagesFile="tools/packages.config"
           destinationDir="tools/packages"/>
 
-        <nugetrestore
+        <!-- these are no longer used as we are cross platform -->
+        <!-- <nugetrestore
           nugetExecutable="tools/nuget.exe"
           packagesFile="packages.config"
           destinationDir="packages"/>
         <addpackagestoassemblies
           packagesDir="packages"
-          assembliesDir="assemblies"/>
+          assembliesDir="assemblies"/> -->
 
         <!-- copy assemblies to build area -->
-        <copy todir="build/assemblies" flatten="false">
+        <!-- <copy todir="build/assemblies" flatten="false">
           <fileset dir="assemblies">
             <include name="assemblies.xml"/>
             <include name="**/*.dll"/>
@@ -101,55 +113,102 @@
             <include name="**/*.xml"/>
             <different targetdir="build/assemblies" ignoreFileTimes="true"/>
           </fileset>
-        </copy>
+        </copy> -->
 
+      <copy todir="build/psc" flatten="false">
+        <fileset dir="psc">
+          <include name="**/*.pl"/>
+          <different targetdir="build/psc" ignoreFileTimes="true"/>
+        </fileset>
+      </copy>
     </target>
 
-    <!-- compile -->
+    <!-- compile oe11 -->
     <target name="compile" description="Compile" depends="">
 
       <property name="absolute.temp" location="${env.TEMP_DIR}"/>
 
-      <oecompile baseDir="src"
+      <oecompile dlcHome="${env.OEDLC11}"
+                 baseDir="src"
                  databasesid="no_databases"
                  propathid="propath_source"
                  filesetid="fileset_source"
                  tempDir="${absolute.temp}"
                  destDir="build/oe11/"
-                 assembliesDir="../build/assemblies/"
                  metadata="false"
                  />
+                 <!-- assembliesDir="../build/assemblies/" -->
 
       <buildpl baseDir="build/oe11/"
                destDir="build/oe11pl/"
                libraryFile="ABLContainer.pl"/>
+
+      <copy todir="build/oe11pl/" flatten="true">
+        <fileset dir="build/oe11/">
+          <include name="**/start.r"/>
+          <different targetdir="build/oe11pl/" ignoreFileTimes="true"/>
+        </fileset>
+      </copy>
     </target>
+
+    <!-- compile oe12 -->
+    <target name="compile-oe12" description="Compile" depends="">
+
+      <property name="absolute.temp" location="${env.TEMP_DIR}"/>
+
+      <oecompile dlcHome="${env.OEDLC12}"
+                 baseDir="src"
+                 databasesid="no_databases"
+                 propathid="propath_source"
+                 filesetid="fileset_source"
+                 tempDir="${absolute.temp}"
+                 destDir="build/oe12/"
+                 metadata="false"
+                 />
+                 <!-- assembliesDir="../build/assemblies/" -->
+
+      <buildpl baseDir="build/oe12/"
+               destDir="build/oe12pl/"
+               libraryFile="ABLContainer.pl"/>
+
+      <copy todir="build/oe12pl/" flatten="true">
+        <fileset dir="build/oe12/">
+          <include name="**/start.r"/>
+          <different targetdir="build/oe12pl/" ignoreFileTimes="true"/>
+        </fileset>
+      </copy>
+    </target>
+
 
     <!-- test -->
     <target name="test" description="Test" depends="">
       <property name="absolute.temp" location="${env.TEMP_DIR}"/>
 
-      <oecompile baseDir="tests"
+      <oecompile dlcHome="${env.OEDLC11}"
+                 baseDir="tests"
                  databasesid="no_databases"
                  propathid="propath_tests"
                  filesetid="fileset_tests"
                  tempDir="${absolute.temp}"
                  destDir="build/tests/"
-                 assembliesDir="../build/assemblies/"
                  metadata="false"
                  displayFiles="1"
                  />
+                 <!-- assembliesDir="../build/assemblies/" -->
 
       <property name="absolute.temp" location="${env.TEMP_DIR}"/>
 
-      <oetest baseDir="tests"
+      <oetest dlcHome="${env.OEDLC11}"
+              baseDir="tests"
               databasesid="no_databases"
               propathid="propath_tests"
               filesetid="fileset_tests"
               tempDir="${absolute.temp}"
               destDir="build/oe11/"
-              assembliesDir="../build/assemblies/"
+              noSonar="true"
+              noCoverage="false"
               />
+              <!-- assembliesDir="../build/assemblies/" -->
     </target>
 
     <!-- report generator -->
@@ -157,7 +216,7 @@
         <coveragereport reportExecutable="tools/packages/ReportGenerator.3.1.2/tools/ReportGenerator.exe"
                         coverageFile="build/oe11/cobertura-coverage.xml"
                         destinationDir="build/reports" />
-        <exec executable="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" spawn="yes" failifexecutionfails="false">
+        <exec executable="C:\Program Files\Google\Chrome\Application\chrome.exe" spawn="yes" failifexecutionfails="false">
             <arg value="build/reports/index.htm" />
         </exec>
     </target>

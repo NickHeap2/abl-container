@@ -30,12 +30,22 @@ RUN SetPropath(propathEnvVar).
 
 DO ON STOP UNDO, LEAVE
    ON ERROR UNDO, LEAVE:
-  DYNAMIC-INVOKE("ABLContainer.Bootstrap.Bootstrap", "Start", environmentEnvVar) NO-ERROR.
+  LOG-MANAGER:WRITE-MESSAGE("Running...", "INFO").
+  DYNAMIC-INVOKE("ABLContainer.Bootstrap.Bootstrap", "Start", environmentEnvVar).
 END.
 CATCH er AS Progress.Lang.Error :
-  DYNAMIC-INVOKE("ABLContainer.Logging.Log", "Error", "ERROR: (~{ErrorMessage~})", BOX(er:GetMessage(1))) NO-ERROR.
+  DEFINE VARIABLE errorNumber AS INTEGER NO-UNDO.
+  DO errorNumber = 1 TO er:NumMessages:
+    LOG-MANAGER:WRITE-MESSAGE( er:GetMessage(errorNumber), "ERROR").
+    DYNAMIC-INVOKE("ABLContainer.Logging.Log", "Error", "ERROR: (~{ErrorMessage~})", NEW OpenEdge.Core.String(er:GetMessage(errorNumber))) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN DO:
+      LOG-MANAGER:WRITE-MESSAGE(ERROR-STATUS:GET-MESSAGE(errorNumber), "ERROR").
+    END.
+  END.
+  
 END CATCH.
 FINALLY:
+  LOG-MANAGER:WRITE-MESSAGE("Closing and flushing", "INFO").
   DYNAMIC-INVOKE("ABLContainer.Logging.Log", "CloseAndFlush") NO-ERROR.
   QUIT.
 END FINALLY.

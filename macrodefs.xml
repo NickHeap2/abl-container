@@ -545,6 +545,8 @@
     <attribute name="databasesid"/>
     <attribute name="propathid"/>
     <attribute name="filesetid"/>
+    <attribute name="noCoverage"  default="false"/>
+    <attribute name="noSonar"  default="false"/>
 
     <attribute name="assembliesDir" default=""/>
     <attribute name="noTTYAssemblies" default="false"/>
@@ -603,7 +605,7 @@
                  cpstream="1252"
                  cpinternal="1252"
 
-                 writeLog="true">
+                 writeLog="false">
 
             <Profiler enabled="true"
                       outputFile="profile/profile.prof"
@@ -614,8 +616,12 @@
             <Option if:true="${addAssemblies}" name="-assemblies" value="@{assembliesDir}"/>
             <Option name="-T" value="@{tempDir}"/>
             <Option name="-reusableObjects" value="0"/>
+            <Option name="-clientlog" value="trace.log"/>
+            <!-- <Option name="-logentrytypes" value="DynObjects.*"/> -->  
+            <Option name="-logentrytypes" value="4GLTrace"/>
+            <Option name="-logginglevel" value="4"/>
 
-            <DBConnectionSet refid="@{databasesid}" />
+            <DBConnectionSet if:set="refid" refid="@{databasesid}" />
 
             <propath refid="@{propathid}" />
 
@@ -623,12 +629,14 @@
         </ABLUnit>
 
         <!-- convert to format used by sonarqube -->
-        <xslt in="@{destDir}/results.xml"
+        <xslt unless:true="@{noSonar}"
+              in="@{destDir}/results.xml"
               out="@{destDir}/sonar-results.xml"
               style="tools/sonar-results.xsl" />
 
         <!-- convert coverage to be usable in report generation -->
-        <coverageconverter profilerInputFile="profile/profile.prof"
+        <coverageconverter unless:true="@{noCoverage}"
+                           profilerInputFile="profile/profile.prof"
                            coberturaOutputFile="@{destDir}/cobertura-coverage.xml"
                            genericCoverageOutputFile="@{destDir}/profiler.xml"/>
     </sequential>
@@ -812,7 +820,7 @@
                 <Option if:true="${addAssemblies}" name="-assemblies" value="@{assembliesDir}"/>
                 <Option name="-T" value="@{tempDir}"/>
 
-                <DBConnectionSet refid="@{databasesid}" />
+                <DBConnectionSet if:set="refid" refid="@{databasesid}" />
 
                 <propath refid="@{propathid}" />
 

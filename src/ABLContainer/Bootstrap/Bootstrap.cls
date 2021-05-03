@@ -3,7 +3,7 @@ USING ABLContainer.Configuration.* FROM PROPATH.
 USING ABLContainer.DockerSwarm.* FROM PROPATH.
 USING ABLContainer.Logging.* FROM PROPATH.
 USING OpenEdge.Core.Collections.* FROM PROPATH.
-USING Progress.Lang.*.
+USING Progress.Lang.* FROM PROPATH.
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -57,13 +57,13 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
     RETURN configuration.
 
     CATCH ae AS Progress.Lang.AppError :
-/*      MESSAGE ae:GetMessage(1).*/
-      LOG-MANAGER:WRITE-MESSAGE(ae:GetMessage(1), "ERROR").
+      MESSAGE ae:GetMessage(1) VIEW-AS ALERT-BOX.
+/*      LOG-MANAGER:WRITE-MESSAGE(ae:GetMessage(1), "ERROR") NO-ERROR.*/
       RETURN ?.
     END CATCH.
     CATCH e AS Progress.Lang.Error :
-/*      MESSAGE e:GetMessage(1).*/
-      LOG-MANAGER:WRITE-MESSAGE(e:GetMessage(1), "ERROR").
+      MESSAGE ae:GetMessage(1) VIEW-AS ALERT-BOX.
+/*      LOG-MANAGER:WRITE-MESSAGE(e:GetMessage(1), "ERROR") NO-ERROR.*/
       RETURN ?.
     END CATCH.
 
@@ -71,7 +71,7 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
 
   METHOD PUBLIC STATIC VOID SetSettings(configuration AS Configuration):
     /* configure logging first */
-    SetSeriLogSettings(configuration).
+    SetLoggingSettings(configuration).
 
     SetOpenEdgeSettings(configuration).
 
@@ -80,14 +80,15 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
   METHOD PUBLIC STATIC VOID Start(environment AS CHARACTER):
     ConnectionStrings = NEW StringCollection().
     LogicalDatabaseNames = NEW StringCollection().
-    VersionNumber = "1.0.3".
+    VersionNumber = "1.1.1".
     DatabaseRetryMaxSeconds = 60.
     DatabaseRetryMaxAttempts = 0.
 
     DEFINE VARIABLE configuration AS Configuration NO-UNDO.
     configuration = BuildConfiguration(environment).
     IF NOT VALID-OBJECT(configuration) THEN DO:
-      MESSAGE "Configuration could not be loaded!".
+/*      MESSAGE "Configuration could not be loaded!".*/
+      MESSAGE "Configuration could not be loaded!" VIEW-AS ALERT-BOX.
       RETURN.
     END.
 
@@ -143,6 +144,21 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       PROFILER:PROFILING = FALSE.
       PROFILER:WRITE-DATA().
     END.
+
+  END METHOD.
+
+  METHOD PUBLIC STATIC VOID SetLoggingSettings(configuration AS Configuration):
+
+    DEFINE VARIABLE dockerSwarmDetails AS DockerSwarmDetails NO-UNDO.
+    dockerSwarmDetails = GetSwarmDetails().
+
+    DEFINE VARIABLE logSection AS ConfigurationSection NO-UNDO.
+    logSection = configuration:GetSection("Logging").
+    IF NOT VALID-OBJECT(logSection) THEN DO:
+      RETURN.
+    END.
+    
+    logSection:Bind("ABLContainer.Logging.Log").
 
   END METHOD.
 
@@ -428,9 +444,10 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       IF connectRetrySeconds > DatabaseRetryMaxSeconds THEN DO:
         connectRetrySeconds = DatabaseRetryMaxSeconds.
       END.
+
       /* limit the max attempts? */
       IF DatabaseRetryMaxAttempts > 0 THEN DO:
-        IF connectRetryAttempt > DatabaseRetryMaxAttempts THEN DO:
+        IF connectRetryAttempt >= DatabaseRetryMaxAttempts THEN DO:
           Log:Error("Databases not connected after ~{ConnectionAttempts~} attempts!", NEW OpenEdge.Core.Integer(connectRetryAttempt)).
           RETURN FALSE.
         END.
@@ -455,7 +472,6 @@ CLASS ABLContainer.Bootstrap.Bootstrap:
       DEFINE VARIABLE databaseConnectionString AS CHARACTER NO-UNDO.
       databaseConnectionString = currentConnectionString:ToString().
 
-      logicalDatabaseNamesEnumerator:Next().
       DEFINE VARIABLE currentLogicalDatabaseName AS OpenEdge.Core.String NO-UNDO.
       currentLogicalDatabaseName = CAST(logicalDatabaseNamesEnumerator:Next(), OpenEdge.Core.String).
       DEFINE VARIABLE logicalDatabaseName AS CHARACTER NO-UNDO.

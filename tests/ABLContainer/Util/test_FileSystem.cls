@@ -46,4 +46,68 @@ CLASS ABLContainer.Util.test_FileSystem:
 
   END METHOD.
 
+  @Test.
+  METHOD PUBLIC VOID canCombinePaths(  ):
+
+    DEFINE VARIABLE path1 AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE path2 AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE combinedPath AS CHARACTER NO-UNDO.
+    path1 = "..".
+    path2 = "secrets".
+    combinedPath = FileSystem:CombinePaths(path1, path2).
+
+    Assert:Equals("..~\secrets", combinedPath).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canCheckIfDirectoryIsNotRooted(  ):
+
+    DEFINE VARIABLE checkPath AS CHARACTER NO-UNDO.
+    checkPath = "secrets".
+
+    DEFINE VARIABLE isRooted AS LOGICAL NO-UNDO.
+    isRooted = FileSystem:DirectoryIsRooted(checkPath).
+
+    Assert:IsFalse(isRooted).
+
+  END METHOD.
+
+
+  @Test.
+  METHOD PUBLIC VOID canCheckIfCombinedDirectoryIsNotRooted(  ):
+
+    DEFINE VARIABLE path1 AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE path2 AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE combinedPath AS CHARACTER NO-UNDO.
+    path1 = "..".
+    path2 = "secrets".
+    combinedPath = FileSystem:CombinePaths(path1, path2).
+
+    DEFINE VARIABLE isRooted AS LOGICAL NO-UNDO.
+    isRooted = FileSystem:DirectoryIsRooted(combinedPath).
+
+    Assert:IsFalse(isRooted).
+
+  END METHOD.
+
+  @Test.
+  METHOD PUBLIC VOID canCheckIfDirectoryIsRooted(  ):
+
+    DEFINE VARIABLE path1 AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE path2 AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE combinedPath AS CHARACTER NO-UNDO.
+    path1 = "..".
+    path2 = "secrets".
+    combinedPath = FileSystem:CombinePaths(path1, path2).
+    FILE-INFO:FILE-NAME = combinedPath.
+    combinedPath = FILE-INFO:FULL-PATHNAME.
+
+    DEFINE VARIABLE isRooted AS LOGICAL NO-UNDO.
+    isRooted = FileSystem:DirectoryIsRooted(combinedPath).
+
+    Assert:IsTrue(isRooted).
+
+  END METHOD.
+
 END CLASS.

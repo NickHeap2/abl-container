@@ -14,8 +14,7 @@ CLASS ABLContainer.Logging.LogProperty:
   END CONSTRUCTOR.
 
   METHOD PUBLIC VOID Dispose():
-    Log:Error("").
-    Log:DisposeProperty(THIS-OBJECT:PropertyName).
+    Log:DisposeProperty(THIS-OBJECT:PropertyName) NO-ERROR.
   END METHOD.
 
 END CLASS.

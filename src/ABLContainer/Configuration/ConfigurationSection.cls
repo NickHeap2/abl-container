@@ -87,6 +87,26 @@ CLASS ABLContainer.Configuration.ConfigurationSection INHERITS Progress.Lang.Obj
     RETURN characterArray.
   END METHOD.
 
+  METHOD PUBLIC VOID Bind(bindClass AS CHARACTER):
+
+    DEFINE VARIABLE sectionEnumerator AS IIterator NO-UNDO.
+    sectionEnumerator = THIS-OBJECT:GetChildren().
+    _CHILDREN:
+    DO WHILE(sectionEnumerator:HasNext()):
+      DEFINE VARIABLE nextValue AS IMapEntry NO-UNDO.
+      nextValue = CAST(sectionEnumerator:Next(), IMapEntry).
+    
+      DEFINE VARIABLE configurationSection AS ConfigurationSection NO-UNDO.
+      configurationSection = CAST(nextValue:Value, ConfigurationSection).
+
+      /* is this a value node? */
+      IF configurationSection:Value <> ? THEN DO:
+        DYNAMIC-PROPERTY(bindClass, configurationSection:Key) = configurationSection:Value NO-ERROR.
+      END.
+    END.
+
+  END METHOD.
+
   METHOD PUBLIC VOID Bind(bindObject AS Progress.Lang.Object):
 
     DEFINE VARIABLE sectionEnumerator AS IIterator NO-UNDO.

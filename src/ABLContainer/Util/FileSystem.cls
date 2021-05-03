@@ -19,9 +19,26 @@ CLASS ABLContainer.Util.FileSystem:
   END METHOD.
 
   METHOD STATIC LOGICAL DirectoryIsRooted(dirPath AS CHARACTER):
+    DEFINE VARIABLE fullDirPath AS CHARACTER NO-UNDO.
+
     FILE-INFO:FILE-NAME = dirPath.
-    
-    RETURN (FILE-INFO:FULL-PATHNAME = FILE-INFO:PATHNAME). 
+    fullDirPath = FILE-INFO:FULL-PATHNAME.
+
+    /*easy if dir exists*/
+    IF fullDirPath <> ? THEN DO:
+      RETURN (fullDirPath = dirPath). 
+    END.
+
+    /*check patterns*/
+    IF OPSYS = "unix" THEN DO:
+      IF dirPath MATCHES "/*" THEN RETURN TRUE.
+    END.
+    ELSE DO:
+      IF dirPath MATCHES ".:~\" THEN RETURN TRUE.
+    END.
+
+    RETURN FALSE.
+
   END METHOD.
 
   METHOD STATIC CHARACTER CombinePaths(path1 AS CHARACTER, path2 AS CHARACTER):
